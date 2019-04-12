@@ -8,19 +8,23 @@ This is a working progress. Will elaborate on my ideas later.
 
 ## MQTT Client Base Class (abstract)
 Inherits from: hbmqtt-client
-Public
-* init()
-    - Takes some parameters and sets up the connection to the broker.
-* publish(address, packet)
-    - Publishes a packet to the broker
-* subscribe(address)
-    - Subscribes to an address with the broker
-
-Private:
-* packet_received_callback() = 0 (is pure virtual)
-    - Is called whenever the client receives a packet
-
-
+Variables:
+self.loop = THe asyncio event loop
+self.C = The HBMQTT client object
+self.broker_addr = The address to which it will connect
+Functions:
+* __init__()
+* setup()
+    - Connect the HBMQTT client to a broker at the broker_addr
+* subscribe_to(topic_array)
+    - Subscribes to the topics specified in the topic array
+* unsubscribe_from(top_array)
+* publish_to(topic, payload)
+* listen()
+    - This function has to be created as a task and scheduled in the asyncio event loop together with other tasks.
+    - An infinite loop that waits for incoming packets
+* packet_received_cb()
+    - abstract method. Is called by listen() when a new packet arrives.
 
 
 ### Sensor class (abstract)
