@@ -11,9 +11,9 @@ def test_coro():
     # must match what we specified in the broker
     yield from C.connect('ws://localhost:8080/')
     # Publish the three packets
-    message = yield from C.publish('MYTOPIC', b'This is message number 1')
-    message1 = yield from C.publish('MYTOPIC', b'And here come number 2')
-    message2 = yield from C.publish('MYTOPIC', b'Atlast, number 3 as well')
+    yield from C.publish('NAME', b'Erling')
+    yield from C.publish('MYTOPIC', b'allo')
+    yield from C.publish('MYTOPIC', b'Atlast, number 3 as well')
     print("messages published\n Good Bye!")
 
 

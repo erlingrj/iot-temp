@@ -4,7 +4,7 @@
 import asyncio
 
 from hbmqtt.client import MQTTClient
-from hbmqtt.mqtt.constants import QOS_1, QOS_2
+from hbmqtt.mqtt.constants import QOS_1
 
 
 @asyncio.coroutine
@@ -14,6 +14,7 @@ def uptime_coro():
     yield from C.connect('ws://localhost:8080/')
     # Subscribe to MYTOPIC
     yield from C.subscribe([
+            ('NAME', QOS_1),
             ('MYTOPIC', QOS_1)]) # We must also specify the Quality Of Service (i.e. if there is reliable delivery with ACKs and so on)
     print("subscibed!")
     i=0
