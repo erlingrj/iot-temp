@@ -4,6 +4,8 @@
 # As of this point, it doesn't implement any error checking on 
 # The connection etc. should be expanded to include this later
 from abc import ABC, abstractmethod
+from config import *
+from packet import *
 
 import asyncio
 from hbmqtt.client import MQTTClient
@@ -15,8 +17,6 @@ class MQTT_Client(ABC):
         """
         Initializing the client
         """
-        # The broker addressed should be passed in a more intelligent way
-        self.broker_addr = 'ws://localhost:8080/'
         # Initializing a new client object
         self.C = MQTTClient()
         # getting the asyncio event loop
@@ -27,7 +27,7 @@ class MQTT_Client(ABC):
 
     async def setup(self):
         # Connect to a MQTT broker
-        await self.C.connect(self.broker_addr)
+        await self.C.connect(BROKER_ADDR)
 
     async def subscribe_to(self,topic_array):
         """
@@ -45,24 +45,32 @@ class MQTT_Client(ABC):
         # NOT USED SO FAR
         pass
     
-    async def publish_to(self,topic, payload):
+    async def publish_to(self,topic, data):
+        # Generate bytestring
+        payload = encode_msg(data)
         # Publishes to the topic
         await self.C.publish(topic[0],payload)
-        print("Packet successfully published") 
+        print("Packet successfully published to topic: {}".format(topic[0])) 
 
     async def listen(self):
         # Is running in an infinite loop listening on receiving packets
         while True:
             p = await self.C.deliver_message()
             try:
+                # Get packet
                 p_format = p.publish_packet
+                # Extract format
+                topic = p_format.variable_header.topic_name
+                # Extract and decode bytestring
+                payload_bytestring = p_format.payload.data.decode('utf-8')
+                payload = decode_msg(payload_bytestring)
                 # Call the abstract callback function that the child will implement
-                self.packet_received_cb(p_format)
+                self.packet_received_cb(topic, payload)
             except:
                 pass
 
     @abstractmethod
-    def packet_received_cb(self, packet):
+    def packet_received_cb(self,topic, payload_dict):
         """
         This callback function is called each time the client
         receives a packet on a topic it is subscribing to

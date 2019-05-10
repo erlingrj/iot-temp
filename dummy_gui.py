@@ -4,6 +4,13 @@ from hbmqtt.mqtt.constants import QOS_1
 import asyncio
 import tkinter as Tk
 
+# Configuration of TOPICS and addresses
+from config import *
+
+# For exception handeling
+import sys
+
+
 # Just a variable used for conditional debugging prints
 DEBUG = False
 
@@ -14,34 +21,41 @@ class GUI(MQTT_Client):
         # Initialize the MQTT_client parent class
         MQTT_Client.__init__(self)
         # Define my_topic
-        self.my_topic = [("TEMP", QOS_1)]
+        #self.my_topic = [("TEMP", QOS_1)]
+        self.my_topic = [TOPICS['temp']]
         # Subscribe to the topic. This is done by letter asyncio-loop run that co-routine until completion
         # I.e. we will do that before continuting to the rest of the program.
         self.loop.run_until_complete(self.subscribe_to(self.my_topic))
         
         
-    def packet_received_cb(self,packet):
+    def packet_received_cb(self,topic, payload_dict):
         """
         THis function will be called each time a packet is received
         This should update a display box in 
         """
-        topic = packet.variable_header.topic_name
-        payload = packet.payload.data.decode('utf-8')
         if DEBUG:
             print("DEBUG: packet_received_cb called in dummy_gui")
-            print("DEBUG: topic = {} payload = {}".format(topic,payload))
+            print("DEBUG: topic = {} data = {}".format(topic, payload_dict['data']))
         
         # There will be several topics. So we should do a if-elif 
         # structure to handle the different incoming packets.
-        if topic == "TEMP":
-            # We wish to display on the screen
-            # First split the packet into its format (btw these things will eventually be implemented in functions)
-            day, month, year, hour, minute, sec, data = payload.split(':')
-            print("TEMP = {}".format(data))
-            self.current_temp.set(data)
+        # We wish to display on the screen
+        # First split the packet into its format (btw these things will eventually be implemented in functions)
+        data = payload_dict['data']
+        self.current_temp.set(data)
 
     # Functions for handeling button-events
     def tkinter_set_temperature_button_pressed(self):
+        # Send the setpoint
+
+        #First create a bytestring to send
+        payload = b'%f' % float(self.temp_setpoint.get())
+        
+        # The we call the async function publish_to with the right topic
+        # We use ensure_future as it is an async function and we cannot call await on it
+        # since we are inside a non-async function
+        asyncio.ensure_future( self.publish_to(TOPICS['temp_setpoint'], payload) )
+
         print("Set temperature button pressed\nSetpoint = {}".format(self.temp_setpoint.get()))
         
 

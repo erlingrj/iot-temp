@@ -4,12 +4,15 @@ from random import random
 import asyncio
 import datetime
 
+from config import *
+
 
 class TempSensor(MQTT_Client):
     def __init__(self):
         MQTT_Client.__init__(self)
         self.current_temp = 0.0
-        self.my_topic = ("TEMP", QOS_1)
+        # self.my_topic = ("TEMP", QOS_1)
+        self.my_topic = TOPICS['temp']
         # The frequency of sampling the temperature
         self.sampling_period = 1
 
@@ -24,22 +27,16 @@ class TempSensor(MQTT_Client):
             await asyncio.sleep(self.sampling_period)
             # Generate random new temperature
             self.current_temp = random()*30
-            # Get current time
-            t = datetime.datetime.now()
-            # Make payload bytestring with timestamp
-            payload = b'%d:%d:%d:%d:%d:%d:%f' %(t.day, t.month, t.year, t.hour, t.minute, t.second, self.current_temp)
-            # Publish a new packet to the broker on topic stored in the class valye my_topic
-            try:
-                await self.publish_to(self.my_topic, payload)    
-            except:
-                pass
+            # Publish the new tempe
+            await self.publish_to(self.my_topic, self.current_temp)
+            
 
-    def packet_received_cb(self,packet):
+    def packet_received_cb(self,topic, payload_dict):
         """ This is the abstract method declared in the MQTT_Client class
             Here we implement what we wish when receiving a packet.
             Probably some switch-case statement on the topic of the packet
         """
-        print(" %s => %s" % (packet.variable_header.topic_name, str(packet.payload.data)))
+        print("ERROR TEMP SENSOR RECEIVES NO PACKETS")
 
 
     def run(self):

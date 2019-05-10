@@ -1,6 +1,4 @@
 
-# This is a basic implementation of the MQTT Broker. This will soon be replaced by a proper object oriented implementation
-
 import logging
 import asyncio
 import os
@@ -8,37 +6,14 @@ from hbmqtt.broker import Broker
 
 # Added by Erling. system-constants.py contains address and port
 from system_constants import *
+from config import *
 
-# THis is the default config of the Broker
-broker_config = {
-    'listeners': {
-        'default': {
-            'type': 'tcp',
-            'bind': 'localhost:1883',
-            'max_connections': 10
-        },
-        'ws': {
-            'type': 'ws',
-            'bind': 'localhost:8080', # THis must match the connectin Clients
-            'max_connections': 10
-        },
-    },
-    'sys_interval': 0,
-    'auth': {
-        'allow-anonymous': True
-    },
-    'plugins' : ['auth_anonymous'],
-    'topic-check' : {
-        'enabled' : True,
-        'plugins' : ['topic_taboo'], #This is important for allowing subscribing to random topics
-    },
-}
 
 # It is async meaning it can run concurrent with other thread in the process
 
 async def broker_coro():
     # Initialize a new Broker with the config file
-    broker = Broker(config = broker_config)
+    broker = Broker(config = BROKER_CONFIG)
     # Yield from => run the function and wait until it returns
     await broker.start()
 
