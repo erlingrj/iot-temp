@@ -26,3 +26,6 @@ BROKER_CONFIG = {
         'plugins' : ['topic_taboo'], #This is important for allowing subscribing to random topics
     },
 }
+
+WEBSERVICE_IP = 'localhost'
+WEBSERVICE_PORT = 8888
