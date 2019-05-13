@@ -38,7 +38,8 @@ class MQTT_Client(ABC):
         # It will run in an infinite loop
 
         await self.C.subscribe(topic_array)
-        print("SUBSCRIBED to topic: {} QOS: {}".format(topic_array[0][0], topic_array[0][1]))
+        for topic in topic_array:
+            print("SUBSCRIBED to topic: {} QOS: {}".format(topic[0], topic[1]))
 
     async def unsubscribe_from(self, topic_array):
         # This function allows us to unsubscribe from the topics in topic_array

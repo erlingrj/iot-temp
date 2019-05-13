@@ -29,3 +29,5 @@ BROKER_CONFIG = {
 
 WEBSERVICE_IP = 'localhost'
 WEBSERVICE_PORT = 8888
+
+LOG_FILE_PATH = 'log/log.txt'

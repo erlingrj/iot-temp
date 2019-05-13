@@ -14,4 +14,4 @@ def encode_msg(data):
 def decode_msg(payload):
     # Decode different packets
     day, month, year, hour, minute, sec, data = payload.split(':')
-    return {'data' : data, 'day' : day, 'month' : month, 'year' : year, 'hour' : hour, 'minute' : minute, 'sec' : sec}
+    return {'data' : data, 'day' : day, 'month' : month, 'year' : year, 'hour' : hour, 'min' : minute, 'sec' : sec}
