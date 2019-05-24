@@ -148,23 +148,40 @@ def log_entry_encode(topic, payload_dict):
 
 def log_entry_decode(entry):
     # Take a log entry and return the topic and payload_dict
-    my_dict = 
+    my_dict = dict(item.split('=') for item in s.split(';'))
+
+    return my_dict
 
 
 def read_log(entryType, nEntries):
     fo = open(LOG_FILE_PATH, "r")
     entriesRead= 0
-    while entriesRead < nEntries:
-        line = fo.readline()
 
+    entries = []
+    for line in fo:
+        entry_dict  = log_entry_decode(line)
+        if entry_dict['EntryID'] == entryType:
+            entriesRead += 1
+            entries.append(entry_dict)
+    
     fo.close()
+    return entries
+
 
 def get_temp_24h():
     print("To be implemented")
-    return [[timestamp1, timestamp2, timestamp3] [val1, val2, val3]]
+    # return 
 
 def get_temp_1w():
     print("To be implemented")
+    # Return
+
+def get_current_control_policy():
+    return read_log(entryType = LogEntryType.CONTROL, nEntries = 1)
+
+
+
+
 
 def create_json(payload_dict):
     data  = {}
