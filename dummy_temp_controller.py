@@ -29,7 +29,7 @@ class TempController(MQTT_Client):
         THis function will be called each time a packet is received
         This should update a display box in 
         """
-        data = payload_dict['data']
+        data = payload_dict['Data']
         self.current_setpoint = data
          
         if DEBUG:

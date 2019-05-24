@@ -1,3 +1,8 @@
-EntryID=0;Timestamp=24-05-2019-14-07-32;Data=20.34
-EntryID=1;Timestamp=23-05-2019-12-30-23;Data=21.0
-
+EntryID=0;Timestamp=24-5-2019-18-45-41;Data=6.569397
+EntryID=0;Timestamp=24-5-2019-18-45-42;Data=9.152833
+EntryID=0;Timestamp=24-5-2019-18-45-43;Data=6.843693
+EntryID=0;Timestamp=24-5-2019-18-45-44;Data=27.832075
+EntryID=0;Timestamp=24-5-2019-18-45-45;Data=1.647106
+EntryID=0;Timestamp=24-5-2019-18-45-46;Data=8.522632
+EntryID=0;Timestamp=24-5-2019-18-47-46;Data=1.623322
+EntryID=0;Timestamp=24-5-2019-18-47-47;Data=10.109130

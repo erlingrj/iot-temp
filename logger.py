@@ -44,8 +44,8 @@ class Logger(MQTT_Client):
         THis function will be called each time a packet is received. Make an entry in local and remote log
         """
         if DEBUG:
-            print("DEBUG: packet_received_cb called in dummy_gui")
-            print("DEBUG: topic = {} data = {}".format(topic, payload_dict['data']))
+            print("DEBUG: packet_received_cb called in logger.py")
+            print("DEBUG: topic = {} data = {}".format(topic, payload_dict['Data']))
         
         # There will be several topics. So we should do a if-elif 
         # structure to handle the different incoming packets.
@@ -57,7 +57,7 @@ class Logger(MQTT_Client):
         # Open file
         fo = open(LOG_FILE_PATH, "a")
         # Write to the file
-        fo.write(log_entry_encode(topc, payload_dict))
+        fo.write(log_entry_encode(topic, payload_dict))
         # Close the file
         fo.close()
  
@@ -66,7 +66,10 @@ class Logger(MQTT_Client):
 
     def log_to_remote_db(self, topic, payload_dict):
         print("log to remote")
+        print(topic)
         if topic == TOPICS['temp'][0]:
+            d = create_json(payload_dict)
+            print(d)
             r = requests.post(DB_POST_TEMP_PATH, data=create_json(payload_dict))
             if r.status_code != 200:
                 print("COULDNT POST: {}".format(r.text))
@@ -85,12 +88,20 @@ class Logger(MQTT_Client):
         r = requests.get(DB_GET_TEMP_PATH)
         if r.status_code == 200:
             last_temp = r.json()
-            ret = compare_local_log(last_temp)
+            ret = compare_local_log(last_temp, LogEntryType.TEMP)
             if ret == -1:
                 # Log is out-of-date
+                print("This should be impossible!")
+                # Send on MQTT
+                self.publish_to(topic=LogEntryType.TEMP,data=last_temp['Data'])
+                # Update log file
+                self.log_to_local_file(topic=LogEntryType.TEMP,payload_dict=last_temp)
+
             if ret == 1:
                 # Remote db is out-of-date
-
+                print("DB is not updated on last temp")
+                self.log_to_remote_db(topic=LogEntryType.TEMP, payload_dict=read_log(LogEntryType.TEMP, 1)[0])
+                
 
         else:
             print(r.text)
@@ -100,6 +111,19 @@ class Logger(MQTT_Client):
         if r.status_code == 200:
             last_control = r.json()
             print(last_control)
+            ret = compare_local_log(last_control, LogEntryType.CONTROL)
+            if ret == -1:
+                # Log is out-of-date
+                print("This should be impossible!")
+                # Send on MQTT
+                self.publish_to(topic=LogEntryType.CONTROL,data=last_control['Data'])
+                # Update log file
+                self.log_to_local_file(topic=LogEntryType.CONTROL,payload_dict=last_control)
+
+            if ret == 1:
+                # Remote db is out-of-date
+                print("DB is not updated on last temp")
+                self.log_to_remote_db(topic=LogEntryType.TEMP, payload_dict=read_log(LogEntryType.TEMP, 1)[0])
         else:
             print(r.text)
 
@@ -124,7 +148,7 @@ class Logger(MQTT_Client):
         try:
             # Spawn the tasks to run concurrently
             self.loop.create_task(self.listen()) # Listen to subscribed topics
-            self.loop.create_task(self.db_poller())
+            #self.loop.create_task(self.db_poller())
             self.loop.run_forever()
         except KeyboardInterrupt:
             pass
@@ -140,19 +164,20 @@ def log_entry_encode(topic, payload_dict):
     if topic == TOPICS['temp_setpoint']:
         log_topic = LogEntryType.CONTROL
 
-    logEntry = "EntryID={};Timestamp={}-{}-{}-{}-{}-{};Data={}\n".format(
-            log_topic, payload_dict['day'],payload_dict['month'],payload_dict['year'],payload_dict['hour'],payload_dict['min'],payload_dict['sec'], payload_dict['data']
-            )
+    logEntry = "EntryID={};Timestamp={};Data={}\n".format(
+            log_topic.value, payload_dict['Timestamp'], payload_dict['Data']
+    )
     return logEntry
     
 
 def log_entry_decode(entry):
     # Take a log entry and return the topic and payload_dict
-    my_dict = dict(item.split('=') for item in s.split(';'))
+    my_dict = dict(item.split('=') for item in entry.split(';'))
 
     return my_dict
 
 
+# Main entry point to reading the log
 def read_log(entryType, nEntries):
     fo = open(LOG_FILE_PATH, "r")
     entriesRead= 0
@@ -168,6 +193,25 @@ def read_log(entryType, nEntries):
     return entries
 
 
+def compare_local_log(db_entry, entryType):
+    last_local_entry = read_log(entryType, nEntries = 1)
+    if not last_local_entry:
+        return -1 # local out-of-date
+    
+    if last_local_entry[0]['Timestamp'] != db_entry['Timestamp']:
+        local_time = last_local_entry[0]['Timestamp'].split('-')
+        db_time = db_entry['Timestamp'].split('-')
+        for i in [2,1,0,3,4,5]:
+            if local_time[i] > db_time[i]:
+                return 1 # DB is out-of-date
+            if db_time[i] > local_time[i]:
+                return -1
+        
+    return 0
+
+
+
+
 def get_temp_24h():
     print("To be implemented")
     # return 
@@ -179,17 +223,11 @@ def get_temp_1w():
 def get_current_control_policy():
     return read_log(entryType = LogEntryType.CONTROL, nEntries = 1)
 
-
-
-
-
 def create_json(payload_dict):
     data  = {}
     data['APIKEY'] = APIKEY
-    data['TimeStamp'] = "{}-{}-{}-{}-{}-{}".format(
-        payload_dict['day'],payload_dict['month'],payload_dict['year'],payload_dict['hour'],payload_dict['min'],payload_dict['sec'],topic
-        )
-    data['Data'] = payload_dict['data']
+    data['Timestamp'] = payload_dict['Timestamp']
+    data['Data'] = payload_dict['Data']
 
     return json.dumps(data)
 

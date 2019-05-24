@@ -12,7 +12,7 @@ import sys
 
 
 # Just a variable used for conditional debugging prints
-DEBUG = False
+DEBUG = True
 
 
 class GUI(MQTT_Client):
@@ -35,13 +35,13 @@ class GUI(MQTT_Client):
         """
         if DEBUG:
             print("DEBUG: packet_received_cb called in dummy_gui")
-            print("DEBUG: topic = {} data = {}".format(topic, payload_dict['data']))
+            print("DEBUG: topic = {} data = {}".format(topic, payload_dict['Data']))
         
         # There will be several topics. So we should do a if-elif 
         # structure to handle the different incoming packets.
         # We wish to display on the screen
         # First split the packet into its format (btw these things will eventually be implemented in functions)
-        data = payload_dict['data']
+        data = payload_dict['Data']
         self.current_temp.set(data)
 
     # Functions for handeling button-events
