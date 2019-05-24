@@ -3,11 +3,24 @@ from mqtt_client import MQTT_Client
 from hbmqtt.mqtt.constants import QOS_1
 import asyncio
 
+# For making GET/POST request to WEB
+import requests
+
+# For structuring data
+import json
+
 # Configuration of TOPICS and addresses
 from config import *
 
 # For exception handeling
 import sys
+
+# for enums
+from enum import Enum
+class LogEntryType(Enum):
+    TEMP = 0
+    CONTROL = 1
+
 
 
 # Just a variable used for conditional debugging prints
@@ -44,20 +57,61 @@ class Logger(MQTT_Client):
         # Open file
         fo = open(LOG_FILE_PATH, "a")
         # Write to the file
-        fo.write("Timestamp:{}-{}-{}-{}-{}-{} Topic:{} Data:{}\n".format(
-            payload_dict['day'],payload_dict['month'],payload_dict['year'],payload_dict['hour'],payload_dict['min'],payload_dict['sec'],topic, payload_dict['data']
-            ))
+        fo.write(log_entry_encode(topc, payload_dict))
         # Close the file
         fo.close()
-
+ 
         
 
 
     def log_to_remote_db(self, topic, payload_dict):
-        print("log to remote is yet to be implemented")
-        raise(Exception)
+        print("log to remote")
+        if topic == TOPICS['temp'][0]:
+            r = requests.post(DB_POST_TEMP_PATH, data=create_json(payload_dict))
+            if r.status_code != 200:
+                print("COULDNT POST: {}".format(r.text))
+            else:
+                print(r.text)
+            
+        elif topic == TOPICS['temp_setpoint'][0]:
+            r = requests.post(DB_POST_CONTROL_PATH, data=create_json(payload_dict))
+            if r.status_code != 200:
+                print("COULDNT POST: {}".format(r.text))
+            else:
+                print(r.text)
+    
+    def poll_remote_db(self):
+        # Poll last entry from DB
+        r = requests.get(DB_GET_TEMP_PATH)
+        if r.status_code == 200:
+            last_temp = r.json()
+            ret = compare_local_log(last_temp)
+            if ret == -1:
+                # Log is out-of-date
+            if ret == 1:
+                # Remote db is out-of-date
 
 
+        else:
+            print(r.text)
+        
+
+        r = requests.get(DB_GET_CONTROL_PATH)
+        if r.status_code == 200:
+            last_control = r.json()
+            print(last_control)
+        else:
+            print(r.text)
+
+        
+    async def db_poller(self):
+        # This is the infinte loop that keeps polling the DB
+        while True:
+            self.poll_remote_db()
+            await asyncio.sleep(10)
+        
+
+        
     
     def run(self):
         """
@@ -70,6 +124,7 @@ class Logger(MQTT_Client):
         try:
             # Spawn the tasks to run concurrently
             self.loop.create_task(self.listen()) # Listen to subscribed topics
+            self.loop.create_task(self.db_poller())
             self.loop.run_forever()
         except KeyboardInterrupt:
             pass
@@ -79,13 +134,49 @@ class Logger(MQTT_Client):
 
 def log_entry_encode(topic, payload_dict):
     # Format the log entry
-    print("Not yet implemented")
-    raise()
+    if topic == TOPICS['temp'][0]:
+        log_topic = LogEntryType.TEMP
+
+    if topic == TOPICS['temp_setpoint']:
+        log_topic = LogEntryType.CONTROL
+
+    logEntry = "EntryID={};Timestamp={}-{}-{}-{}-{}-{};Data={}\n".format(
+            log_topic, payload_dict['day'],payload_dict['month'],payload_dict['year'],payload_dict['hour'],payload_dict['min'],payload_dict['sec'], payload_dict['data']
+            )
+    return logEntry
+    
 
 def log_entry_decode(entry):
     # Take a log entry and return the topic and payload_dict
-    print("Not yet implemented")
-    raise()
+    my_dict = 
+
+
+def read_log(entryType, nEntries):
+    fo = open(LOG_FILE_PATH, "r")
+    entriesRead= 0
+    while entriesRead < nEntries:
+        line = fo.readline()
+
+    fo.close()
+
+def get_temp_24h():
+    print("To be implemented")
+    return [[timestamp1, timestamp2, timestamp3] [val1, val2, val3]]
+
+def get_temp_1w():
+    print("To be implemented")
+
+def create_json(payload_dict):
+    data  = {}
+    data['APIKEY'] = APIKEY
+    data['TimeStamp'] = "{}-{}-{}-{}-{}-{}".format(
+        payload_dict['day'],payload_dict['month'],payload_dict['year'],payload_dict['hour'],payload_dict['min'],payload_dict['sec'],topic
+        )
+    data['Data'] = payload_dict['data']
+
+    return json.dumps(data)
+
+
 
 if __name__ == '__main__':
     MyLogger = Logger()

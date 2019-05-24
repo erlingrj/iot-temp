@@ -73,7 +73,7 @@ class GUI(MQTT_Client):
         self.entry_temp = Tk.Entry(self.root, textvariable=self.temp_setpoint)
         self.entry_temp.grid(row=1, column=0)
         self.button.grid(row=1, column=1)
-        self.tk_interval = 0.001
+        self.tk_interval = 0.01
     
     def run(self):
         """
