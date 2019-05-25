@@ -66,18 +66,18 @@ class Logger(MQTT_Client):
 
     def log_to_remote_db(self, topic, payload_dict):
         print("log to remote")
-        print(topic)
+        # Add the API key to the payload_dict
+        payload_dict['APIKEY'] = APIKEY
+        print(payload_dict)
         if topic == TOPICS['temp'][0]:
-            d = create_json(payload_dict)
-            print(d)
-            r = requests.post(DB_POST_TEMP_PATH, data=create_json(payload_dict))
+            r = requests.post(DB_POST_TEMP_PATH, json=payload_dict, headers = {'content-type': 'application/json'})
             if r.status_code != 200:
                 print("COULDNT POST: {}".format(r.text))
             else:
                 print(r.text)
             
         elif topic == TOPICS['temp_setpoint'][0]:
-            r = requests.post(DB_POST_CONTROL_PATH, data=create_json(payload_dict))
+            r = requests.post(DB_POST_CONTROL_PATH, data=payload_dict)
             if r.status_code != 200:
                 print("COULDNT POST: {}".format(r.text))
             else:
