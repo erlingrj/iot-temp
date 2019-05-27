@@ -14,7 +14,7 @@ class TempSensor(MQTT_Client):
         # self.my_topic = ("TEMP", QOS_1)
         self.my_topic = TOPICS['temp']
         # The frequency of sampling the temperature
-        self.sampling_period = 1
+        self.sampling_period = 60*15
 
     async def main_loop(self):
         """
@@ -23,12 +23,13 @@ class TempSensor(MQTT_Client):
         Currently it is just generating a random number.
         """
         while True:
-            # GO to sleep and give CPU time to other tasks
-            await asyncio.sleep(self.sampling_period)
             # Generate random new temperature
             self.current_temp = random()*30
             # Publish the new tempe
             await self.publish_to(self.my_topic, self.current_temp)
+             # GO to sleep and give CPU time to other tasks
+            await asyncio.sleep(self.sampling_period)
+
             
 
     def packet_received_cb(self,topic, payload_dict):
