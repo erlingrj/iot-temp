@@ -15,11 +15,18 @@ from config import *
 # For exception handeling
 import sys
 
+# For working with dates
+import datetime
+import dateutil.parser
+
 # for enums
 from enum import Enum
 class LogEntryType(Enum):
     TEMP = 0
     CONTROL = 1
+
+# For IO
+from file_read_backwards import FileReadBackwards
 
 
 
@@ -36,7 +43,8 @@ class Logger(MQTT_Client):
         # Subscribe to the topics. This is done by letter asyncio-loop run that co-routine until completion
         # I.e. we will do that before continuting to the rest of the program.
         self.loop.run_until_complete(self.subscribe_to(self.my_topics))
-        
+        self.id = 1
+
         
         
     def packet_received_cb(self,topic, payload_dict):
@@ -68,7 +76,6 @@ class Logger(MQTT_Client):
         print("log to remote")
         # Add the API key to the payload_dict
         payload_dict['APIKEY'] = APIKEY
-        print(payload_dict)
         if topic == TOPICS['temp'][0]:
             r = requests.post(DB_POST_TEMP_PATH, json=payload_dict, headers = {'content-type': 'application/json'})
             if r.status_code != 200:
@@ -83,55 +90,33 @@ class Logger(MQTT_Client):
             else:
                 print(r.text)
     
-    def poll_remote_db(self):
+    async def poll_remote_db(self):
         # Poll last entry from DB
-        r = requests.get(DB_GET_TEMP_PATH)
-        if r.status_code == 200:
-            last_temp = r.json()
-            ret = compare_local_log(last_temp, LogEntryType.TEMP)
-            if ret == -1:
-                # Log is out-of-date
-                print("This should be impossible!")
-                # Send on MQTT
-                self.publish_to(topic=LogEntryType.TEMP,data=last_temp['Data'])
-                # Update log file
-                self.log_to_local_file(topic=LogEntryType.TEMP,payload_dict=last_temp)
-
-            if ret == 1:
-                # Remote db is out-of-date
-                print("DB is not updated on last temp")
-                self.log_to_remote_db(topic=LogEntryType.TEMP, payload_dict=read_log(LogEntryType.TEMP, 1)[0])
-                
-
-        else:
-            print(r.text)
-        
 
         r = requests.get(DB_GET_CONTROL_PATH)
         if r.status_code == 200:
             last_control = r.json()
-            print(last_control)
             ret = compare_local_log(last_control, LogEntryType.CONTROL)
-            if ret == -1:
-                # Log is out-of-date
-                print("This should be impossible!")
-                # Send on MQTT
-                self.publish_to(topic=LogEntryType.CONTROL,data=last_control['Data'])
-                # Update log file
-                self.log_to_local_file(topic=LogEntryType.CONTROL,payload_dict=last_control)
 
-            if ret == 1:
-                # Remote db is out-of-date
-                print("DB is not updated on last temp")
-                self.log_to_remote_db(topic=LogEntryType.TEMP, payload_dict=read_log(LogEntryType.TEMP, 1)[0])
+            if ret == -1:
+                print("Local log is outdated")
+                await self.publish_to(topic=TOPICS['temp_setpoint'][0],data=last_control['Data'])
+                # Update log file
+                self.log_to_local_file(topic=TOPICS['temp_setpoint'][0],payload_dict=last_control)
+            elif ret == 1:
+                print("remote DB is out-dated")
+                self.log_to_remote_db(topic=TOPICS['temp_setpoint'][0], payload_dict=read_log(LogEntryType.CONTROL, 1)[0])
+            else:
+                print("Logger verify consistency between ")
         else:
-            print(r.text)
+            print("Failed to get control policy in poll_remote_db: {}".format(r.text))
+        
 
         
     async def db_poller(self):
         # This is the infinte loop that keeps polling the DB
         while True:
-            self.poll_remote_db()
+            await self.poll_remote_db()
             await asyncio.sleep(10)
         
 
@@ -148,7 +133,7 @@ class Logger(MQTT_Client):
         try:
             # Spawn the tasks to run concurrently
             self.loop.create_task(self.listen()) # Listen to subscribed topics
-            #self.loop.create_task(self.db_poller())
+            self.loop.create_task(self.db_poller())
             self.loop.run_forever()
         except KeyboardInterrupt:
             pass
@@ -161,7 +146,7 @@ def log_entry_encode(topic, payload_dict):
     if topic == TOPICS['temp'][0]:
         log_topic = LogEntryType.TEMP
 
-    if topic == TOPICS['temp_setpoint']:
+    if topic == TOPICS['temp_setpoint'][0]:
         log_topic = LogEntryType.CONTROL
 
     logEntry = "EntryID={};Timestamp={};Data={}\n".format(
@@ -179,15 +164,17 @@ def log_entry_decode(entry):
 
 # Main entry point to reading the log
 def read_log(entryType, nEntries):
-    fo = open(LOG_FILE_PATH, "r")
+    fo = FileReadBackwards(LOG_FILE_PATH, encoding="utf-8")
     entriesRead= 0
 
     entries = []
     for line in fo:
         entry_dict  = log_entry_decode(line)
-        if entry_dict['EntryID'] == entryType:
+        if int(entry_dict['EntryID']) == entryType.value:
             entriesRead += 1
             entries.append(entry_dict)
+            if entriesRead == nEntries:
+                break
     
     fo.close()
     return entries
@@ -198,23 +185,71 @@ def compare_local_log(db_entry, entryType):
     if not last_local_entry:
         return -1 # local out-of-date
     
-    if last_local_entry[0]['Timestamp'] != db_entry['Timestamp']:
-        local_time = last_local_entry[0]['Timestamp'].split('-')
-        db_time = db_entry['Timestamp'].split('-')
-        for i in [2,1,0,3,4,5]:
-            if local_time[i] > db_time[i]:
-                return 1 # DB is out-of-date
-            if db_time[i] > local_time[i]:
-                return -1
+    local_time = dateutil.parser.parse(last_local_entry[0]['Timestamp'])
+    db_time = dateutil.parser.parse(db_entry['Timestamp'])
+
+    if local_time > db_time:
+        return 1
+    elif db_time > local_time:
+        return -1
+    elif db_time == local_time:
+        return 0
         
-    return 0
-
-
-
 
 def get_temp_24h():
-    print("To be implemented")
-    # return 
+    # Construct the dates for the different intervals.
+    n_hours = 24
+    n_entries = n_hours * 3600 / TEMP_SAMPLING_INTERVAL
+    now = datetime.datetime.now()
+    h = datetime.timedelta(hours=1)
+    now_rounded = now.replace(minute = 0, second=0, microsecond=0)
+    dates = []
+    # Construct the labels as datetime objects
+    for i in range(24,-1,-1):
+        dates.append(now_rounded - i*h)
+    dates.append(now.replace(microsecond = 0))
+
+    # Get enough recent temp-entries
+    entries = read_log(LogEntryType.TEMP, n_entries)
+    values = create_stats_for_plotting(entries,dates)
+
+    #Generate the strings for the plotting
+    str_labels = [date.strftime("%a %H:%M") for date in dates[0:-1]]
+
+    return (str_labels, values)
+    
+def create_stats_for_plotting(entries, dates):
+    values = [None] * (len(dates)-1)
+    tot = [0] * (len(dates)-1)
+    n_vals = [0] * (len(dates)-1)
+
+    for entry in entries:
+        entry_time = dateutil.parser.parse(entry['Timestamp'])
+        for idx, date in enumerate(dates):
+            if idx == 0:
+                if entry_time < date:
+                    break
+            elif idx == (len(dates)-1):
+                tot[idx] += float(entry['Data'])
+                n_vals[idx] += 1
+            else:
+                if entry_time < date:
+                    tot[idx-1] += float(entry['Data'])
+                    n_vals[idx-1] +=1
+                    break
+    
+    for i, n_val in enumerate(n_vals):
+        if n_val > 0:
+            values[i] = tot[i]/n_val
+    
+    return values
+
+
+        
+
+
+
+
 
 def get_temp_1w():
     print("To be implemented")

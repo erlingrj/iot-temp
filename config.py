@@ -37,6 +37,7 @@ DB_GET_CONTROL_PATH = "http://127.0.0.1:5000/db/get-last-control"
 DB_POST_TEMP_PATH =  "http://127.0.0.1:5000/db/post-temp"
 DB_POST_CONTROL_PATH = "http://127.0.0.1:5000/db/post-control"
 
+TEMP_SAMPLING_INTERVAL = 15*60
 
 APIKEY= 12345
 {	

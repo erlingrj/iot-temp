@@ -2,13 +2,14 @@ import datetime
 
 
 
-def encode_msg(data):
+def encode_msg(data, src):
     # Implement a way to encode the different messages
     t = datetime.datetime.now()
+    t = t.replace(microsecond=0)
     # Make payload bytestring with timestamp
-    payload = b'Timestamp=%d-%d-%dT%d:%d:%d;Data=%f' %(t.year, t.month, t.day, t.hour, t.minute, t.second, data)
-
-    return payload
+    payload = 'Timestamp={};Data={};Src={}'.format(t.isoformat(), data, src)
+    # Encode as bytestring
+    return payload.encode('utf-8')
 
 def decode_msg(payload):
     # Decode different packets

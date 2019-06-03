@@ -17,12 +17,15 @@ class MQTT_Client(ABC):
         """
         Initializing the client
         """
+
         # Initializing a new client object
         self.C = MQTTClient()
+        self.id = 0
         # getting the asyncio event loop
         self.loop = asyncio.get_event_loop()
         # Run the set-up to completion before moving on
         self.loop.run_until_complete(self.setup())
+
 
 
     async def setup(self):
@@ -48,7 +51,7 @@ class MQTT_Client(ABC):
     
     async def publish_to(self,topic, data):
         # Generate bytestring
-        payload = encode_msg(data)
+        payload = encode_msg(data, self.id)
         # Publishes to the topic
         await self.C.publish(topic[0],payload)
         print("Packet successfully published to topic: {}".format(topic[0])) 
@@ -65,8 +68,12 @@ class MQTT_Client(ABC):
                 # Extract and decode bytestring
                 payload_bytestring = p_format.payload.data.decode('utf-8')
                 payload = decode_msg(payload_bytestring)
+                print(self.id, payload['Src'])
+                if payload['Src'] != self.id:
+                    del payload['Src'] #Remove the source thing.
+                    self.packet_received_cb(topic, payload)
                 # Call the abstract callback function that the child will implement
-                self.packet_received_cb(topic, payload)
+                
             except:
                 pass
 

@@ -17,3 +17,11 @@ Intro to asyncio2:
 https://www.blog.pythonlibrary.org/2016/07/26/python-3-an-intro-to-asyncio/
 
 
+## TODO 29. May
+1. in aws_controller.py make the correct query's based on the timestamp. BOTH for STATS and DASHBOARD
+2. In logger.py: Make the consistency check for Local vs Remote
+3. In logger.py: Look into putting a cap on the size of the file.
+4. On AWS: Make the connect to update-control-policy
+5. On AWS: Go from Quart to Flask
+6.
+

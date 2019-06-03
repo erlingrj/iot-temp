@@ -26,6 +26,7 @@ class GUI(MQTT_Client):
         # Subscribe to the topic. This is done by letter asyncio-loop run that co-routine until completion
         # I.e. we will do that before continuting to the rest of the program.
         self.loop.run_until_complete(self.subscribe_to(self.my_topic))
+        self.id = 2
         
         
     def packet_received_cb(self,topic, payload_dict):

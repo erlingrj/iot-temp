@@ -22,6 +22,7 @@ class TempController(MQTT_Client):
         self.loop.run_until_complete(self.subscribe_to(self.my_topic))
 
         self.current_setpoint = 0.0
+        self.id = 4
         
         
     def packet_received_cb(self,topic, payload_dict):
