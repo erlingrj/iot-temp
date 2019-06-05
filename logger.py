@@ -93,7 +93,7 @@ class Logger(MQTT_Client):
     async def poll_remote_db(self):
         # Poll last entry from DB
 
-        r = requests.get(DB_GET_CONTROL_PATH)
+        r = requests.get(DB_GET_CONTROL_PATH, headers={'APIKEY':APIKEY})
         if r.status_code == 200:
             last_control = r.json()
             ret = compare_local_log(last_control, LogEntryType.CONTROL)
@@ -117,7 +117,7 @@ class Logger(MQTT_Client):
         # This is the infinte loop that keeps polling the DB
         while True:
             await self.poll_remote_db()
-            await asyncio.sleep(10)
+            await asyncio.sleep(10*60)
         
 
         
