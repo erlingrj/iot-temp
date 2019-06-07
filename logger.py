@@ -73,43 +73,50 @@ class Logger(MQTT_Client):
 
 
     def log_to_remote_db(self, topic, payload_dict):
-        print("log to remote")
         # Add the API key to the payload_dict
         payload_dict['APIKEY'] = APIKEY
         if topic == TOPICS['temp'][0]:
-            r = requests.post(DB_POST_TEMP_PATH, json=payload_dict, headers = {'content-type': 'application/json'})
-            if r.status_code != 200:
-                print("COULDNT POST: {}".format(r.text))
-            else:
-                print(r.text)
-            
+            try:
+                r = requests.post(DB_POST_TEMP_PATH, json=payload_dict, headers = {'content-type': 'application/json'})
+                if r.status_code != 200:
+                    print("COULDNT POST: {}".format(r.text))
+                else:
+                    print(r.text)
+            except:
+                print("No internet connection to log_to_remote_db")
         elif topic == TOPICS['temp_setpoint'][0]:
-            r = requests.post(DB_POST_CONTROL_PATH, data=payload_dict)
-            if r.status_code != 200:
-                print("COULDNT POST: {}".format(r.text))
-            else:
-                print(r.text)
+            try:
+                r = requests.post(DB_POST_CONTROL_PATH, data=payload_dict)
+                if r.status_code != 200:
+                    print("COULDNT POST: {}".format(r.text))
+                else:
+                    print(r.text)
+            except:
+                print("No internet connection to log_to_remote_db")
     
     async def poll_remote_db(self):
         # Poll last entry from DB
+        try:
+            r = requests.get(DB_GET_CONTROL_PATH, headers={'APIKEY':APIKEY})
+            if r.status_code == 200:
+                last_control = r.json()
+                ret = compare_local_log(last_control, LogEntryType.CONTROL)
 
-        r = requests.get(DB_GET_CONTROL_PATH, headers={'APIKEY':APIKEY})
-        if r.status_code == 200:
-            last_control = r.json()
-            ret = compare_local_log(last_control, LogEntryType.CONTROL)
-
-            if ret == -1:
-                print("Local log is outdated")
-                await self.publish_to(topic=TOPICS['temp_setpoint'][0],data=last_control['Data'])
-                # Update log file
-                self.log_to_local_file(topic=TOPICS['temp_setpoint'][0],payload_dict=last_control)
-            elif ret == 1:
-                print("remote DB is out-dated")
-                self.log_to_remote_db(topic=TOPICS['temp_setpoint'][0], payload_dict=read_log(LogEntryType.CONTROL, 1)[0])
+                if ret == -1:
+                    print("Local log is outdated")
+                    await self.publish_to(topic=TOPICS['temp_setpoint'][0],data=last_control['Data'])
+                    # Update log file
+                    self.log_to_local_file(topic=TOPICS['temp_setpoint'][0],payload_dict=last_control)
+                elif ret == 1:
+                    print("remote DB is out-dated")
+                    self.log_to_remote_db(topic=TOPICS['temp_setpoint'][0], payload_dict=read_log(LogEntryType.CONTROL, 1)[0])
+                else:
+                    print("Logger verify consistency between ")
             else:
-                print("Logger verify consistency between ")
-        else:
-            print("Failed to get control policy in poll_remote_db: {}".format(r.text))
+                print("Failed to get control policy in poll_remote_db: {}".format(r.text))
+        except:
+            print("No internet connection to poll_remote_db")
+            pass
         
 
         
