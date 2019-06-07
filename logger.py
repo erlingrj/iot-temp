@@ -205,6 +205,7 @@ def compare_local_log(db_entry, entryType):
 
 def get_temp_24h():
     # Construct the dates for the different intervals.
+    resolution = 1
     n_hours = 24
     n_entries = n_hours * 3600 / TEMP_SAMPLING_INTERVAL
     now = datetime.datetime.now()
@@ -212,7 +213,7 @@ def get_temp_24h():
     now_rounded = now.replace(minute = 0, second=0, microsecond=0)
     dates = []
     # Construct the labels as datetime objects
-    for i in range(24,-1,-1):
+    for i in range(int(n_hours/resolution),-1,-1):
         dates.append(now_rounded - i*h)
     dates.append(now.replace(microsecond = 0))
 
@@ -236,7 +237,7 @@ def create_stats_for_plotting(entries, dates):
             if idx == 0:
                 if entry_time < date:
                     break
-            elif idx == (len(dates)-1):
+            elif idx == (len(dates)-2):
                 tot[idx] += float(entry['Data'])
                 n_vals[idx] += 1
             else:
@@ -252,15 +253,29 @@ def create_stats_for_plotting(entries, dates):
     return values
 
 
-        
-
-
-
-
-
 def get_temp_1w():
-    print("To be implemented")
-    # Return
+    # Construct the dates for the different intervals.
+    resolution=4
+    n_hours = 24*7
+    n_entries = n_hours * 3600 / TEMP_SAMPLING_INTERVAL
+    now = datetime.datetime.now()
+    h = datetime.timedelta(hours=resolution)
+    now_rounded = now.replace(minute = 0, second=0, microsecond=0)
+    dates = []
+    # Construct the labels as datetime objects
+    for i in range(int(n_hours/resolution),-1,-1):
+        dates.append(now_rounded - i*h)
+    dates.append(now.replace(microsecond = 0))
+    print(dates)
+    # Get enough recent temp-entries
+    entries = read_log(LogEntryType.TEMP, n_entries)
+    print(entries)
+    values = create_stats_for_plotting(entries,dates)
+
+    #Generate the strings for the plotting
+    str_labels = [date.strftime("%a %H:%M") for date in dates[0:-1]]
+
+    return (str_labels, values)
 
 def get_current_control_policy():
     return read_log(entryType = LogEntryType.CONTROL, nEntries = 1)
