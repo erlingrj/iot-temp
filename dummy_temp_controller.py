@@ -16,7 +16,7 @@ class TempController(MQTT_Client):
         # Initialize the MQTT_client parent class
         MQTT_Client.__init__(self)
         # Define my_topic
-        self.my_topic = [TOPICS['temp_setpoint']]
+        self.my_topic = [TOPICS['temp_setpoint'], TOPICS['temp']]
         # Subscribe to the topic. This is done by letter asyncio-loop run that co-routine until completion
         # I.e. we will do that before continuting to the rest of the program.
         self.loop.run_until_complete(self.subscribe_to(self.my_topic))

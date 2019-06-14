@@ -27,7 +27,7 @@ class TempSensor(MQTT_Client):
             # Generate random new temperature
             self.current_temp = random()*30
             # Publish the new tempe
-            await self.publish_to(self.my_topic, self.current_temp)
+            await self.publish_to(self.my_topic[0], self.current_temp)
              # GO to sleep and give CPU time to other tasks
             await asyncio.sleep(self.sampling_period)
 

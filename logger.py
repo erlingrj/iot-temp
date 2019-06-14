@@ -58,8 +58,9 @@ class Logger(MQTT_Client):
         # There will be several topics. So we should do a if-elif 
         # structure to handle the different incoming packets.
         self.log_to_local_file(topic, payload_dict)
-
         self.log_to_remote_db(topic, payload_dict)
+
+        # If we have a new 
 
     def log_to_local_file(self, topic, payload_dict):
         # Open file
@@ -106,7 +107,7 @@ class Logger(MQTT_Client):
                     print("Local log is outdated")
                     await self.publish_to(topic=TOPICS['temp_setpoint'][0],data=last_control['Data'])
                     # Update log file
-                    self.log_to_local_file(topic=TOPICS['temp_setpoint'][0],payload_dict=last_control)
+                    self.log_to_local_file(TOPICS['temp_setpoint'][0], last_control)
                 elif ret == 1:
                     print("remote DB is out-dated")
                     self.log_to_remote_db(topic=TOPICS['temp_setpoint'][0], payload_dict=read_log(LogEntryType.CONTROL, 1)[0])
@@ -278,7 +279,12 @@ def get_temp_1w():
     return (str_labels, values)
 
 def get_current_control_policy():
-    return read_log(entryType = LogEntryType.CONTROL, nEntries = 1)
+    fo = open(CURRENT_POLICY_PATH, 'r')
+    line = fo.readlines()[0]
+    fo.close()
+    values = [float(x) for x in line.split('-')]
+    labels = ["02:00", "04:00", "08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00", "00:00"]
+    return labels, values
 
 def create_json(payload_dict):
     data  = {}

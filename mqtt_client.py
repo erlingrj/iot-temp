@@ -53,8 +53,8 @@ class MQTT_Client(ABC):
         # Generate bytestring
         payload = encode_msg(data, self.id)
         # Publishes to the topic
-        await self.C.publish(topic[0],payload)
-        print("Packet successfully published to topic: {}".format(topic[0])) 
+        await self.C.publish(topic,payload)
+        print("P: {} topic: {}".format(payload, topic)) 
 
     async def listen(self):
         # Is running in an infinite loop listening on receiving packets
@@ -69,7 +69,7 @@ class MQTT_Client(ABC):
                 payload_bytestring = p_format.payload.data.decode('utf-8')
                 payload = decode_msg(payload_bytestring)
                 print(self.id, payload['Src'])
-                if payload['Src'] != self.id:
+                if int(payload['Src']) != self.id:
                     del payload['Src'] #Remove the source thing.
                     self.packet_received_cb(topic, payload)
                 # Call the abstract callback function that the child will implement
