@@ -83,7 +83,8 @@ class Logger(MQTT_Client):
                     print("COULDNT POST: {}".format(r.text))
                 else:
                     print(r.text)
-            except:
+            except Exception as e:
+                print(e)
                 print("No internet connection to log_to_remote_db")
         elif topic == TOPICS['temp_setpoint'][0]:
             try:
@@ -92,7 +93,8 @@ class Logger(MQTT_Client):
                     print("COULDNT POST: {}".format(r.text))
                 else:
                     print(r.text)
-            except:
+            except Exception as e:
+                print(e)
                 print("No internet connection to log_to_remote_db")
     
     async def poll_remote_db(self):
