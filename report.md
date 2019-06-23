@@ -48,7 +48,7 @@ The MQTT Broker process implements an MQTT Broker that connects all the componen
 ### Remote system (Amazon Web Services)
 The *remote system*  is hosted at Amazon Web Services and is running on an Ubuntu EC2 instance in Paris. It contains a non relational database with a custom REST interface and a graphical user interface to be accessed with the browser.
 
-![alt text](doc/remote-system.bmp "Fig. XX Local System")
+![alt text](doc/remote_system.bmp "Fig. XX Local System")
 Fig XX. Remote system
 
 #### Database
