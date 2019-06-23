@@ -1,13 +1,13 @@
 # Project and laboratories on communication systems
 * Group 49
-* Erling Rennemo Jellum
+* Erling Rennemo Jellum S263558
 * Behzad (insert name)
 
 ## Introduction
 With the advent of cheap microcontroller with networking capabilities solutions for automation in buildings is gaining traction. Our hypothetical customer is the maintainers of large scale industrial, public or commercial buildings like factories, universities or hotels. The aim of the project is to create a system for measuring and controlling the temperature in a building as well as providing an intuitiv interface to the system. There is an emphasis on using the M2M protocol MQTT for communication purposes. 
 
 ## Requirements
-* A single temperature sensor connect through a Raspberry Pi
+* A single temperature sensor connected through a Raspberry Pi
 * A graphical user interface implemented on a Raspberry Pi with an LCD screen
 * A web user interface
 * UIs should let user see real time temperature, historical temperature and change the control policy
@@ -20,7 +20,7 @@ With the advent of cheap microcontroller with networking capabilities solutions 
 ## Architecture
 The system can roughly be divided into the local and the *remote system* . The *local system*  consists of all the components that will be installed onsite with the customer, i.e. sensors, controllers, gateways etc. While the *remote system*  is the system in the cloud, i.e. remote database, web user interface etc.
 
-### *local system*  (Raspberry Pi)
+### Local System (Raspberry Pi)
 The RPi is the key component in *local system*. It serves several functions that typically, for our hypothetical customers, would be divided between several components spread out over the building. Each of the functions are running in a separate process and communicating with another through MQTT thus we have a very scalable system.
 
 #### Temperature Sensing
@@ -38,7 +38,7 @@ The graphical user interface (GUI) process displays the current temperature on t
 The Logger/Gateway process is the link between the *local system*  and the remote web system. The Logger/Gateway subscribes to all the MQTT topics and logs them to a local file. It also makes HTTP Post requests to the remote web server to update the remote log. Moreove it periodically polls the remote web server to correct inconsistencies between the remote and local log. This is also how user input through the web ui is delivered to the *local system* . The Logger/Gateway also replies the Ping messages broadcasted from the MQTT Broker implemented by the Professor and Teaching Assistents.
 
 #### MQTT Broker
-The MQTT Broker process implements an MQTT Broker that connects all the components of the *local system* .
+The MQTT Broker process implements an MQTT Broker that connects all the components of the *local system*.
 
 
 ### Remote system  (Amazon Web Services)
@@ -49,6 +49,18 @@ We have two non relational databases hosted on AWS. The first is the full log. A
 
 The database interface is a REST interface that accepts GET requests and POST request to access *temperature* and *control policy* events. This interface is used by the Logger/Gateway process in the *local system* .
 
+
+| Customer ID | Event ID | Timestamp | Data |
+|---|-|-|-|
+|123|0|23-06-2019T09:42:00|23.5|
+Fig XX. Entry of the Log database
+
+| Customer ID | Timestamp-temperature | Temperature | Timestamp-control | Control | 
+|---|-|-|-|--|
+|123|24-06-2019T10:30:00|21.0|20-06-2019T08:38:00|17.0-17.0-17.0-18.0-18.0 ...|
+Fig. YY. Entry of the current value database
+
+
 #### Web user interface
 The Web UI provides the user with a similar interface as the local GUI. It shows the current temperature and the current control policy. It lets the user change the control policy and it also lets the user see the average temperature for the last 24h and also the last week. The user input is stored in the database so that the Logger/Gateway can pull it later.
 
@@ -56,7 +68,15 @@ The Web UI provides the user with a similar interface as the local GUI. It shows
 This system touches on many areas from low level drivers sampling analog sensor input to styling of HTML pages for the browser. We have therefor used a variaty of frameworks, protocols and languages discussed below.
 
 ### MQTT
-Using MQTT was one of the main requirements and we have used it extensively. We have written our own MQTT Broker and MQTT Client using the Python package HBMQTT. All the processes of the *local system*  is implementing either an MQTT Broker or a Client. BLABLA MQTT
+Using MQTT was one of the main requirements and we have used it extensively. We have written our own MQTT Broker and MQTT Client using the Python package HBMQTT. All the processes of the *local system* is implementing either an MQTT Broker or a Client. MQTT is short for *Message Queuing Telemetry Transport* and is a lightweight publish and subsribe system that runs ontop of HTTP or WebSocket. MQTT clients, like the GUI, Temperature Sensor, Temperature Controller and Logger/Gateway, publish and subscribe messages to different topics. The Broker, or server, has the responisbility to distribute messages published on a certain topic to the clients subscribing to that topic. MQTT is becoming very popular for IoT solutions where we need to control devices remotely. There are several reasons for this popularity
+- MQTT is open source. Anyone can inspect the source code and also make improvements or adjustments
+- MQTT is lightweight. There is a small code footprint for running a MQTT Client.
+- MQTT exposes devices that are behind a firewall with subscription
+
+MQTT can also guarantee different levels of reliability with the Quality of Service (QoS) parameter. For each subscription a client makes, he also specifies the QoS which is either 1, 2 or 3. This correspond to different schemes for the Broker to deliver messages on that topic to the client.
+- QoS_1: Fire and forget. Message is sent only once and no acknowledgement is required from the client
+- QoS_2: Acknowledged delivery: Message is resent until the Broker receives an acknowledgement from the client. The Client could receive duplicates.
+- QoS_3: Assured delivery: Client receives exactly one copy of the message. This is assured through a two-level handshake.
 
 ### HTTP
 We are using HTTP to connect the local and the *remote system* . The Gateway/Logger gets data from the *remote system*  by HTTP GET requests and publises data with HTTP POST requests. The Web UI is, of course, also served using HTTP.
@@ -65,10 +85,10 @@ We are using HTTP to connect the local and the *remote system* . The Gateway/Log
 Asyncio is another Python Package that is very central in the *local system* . It allows for single threaded multitasking and is necessary to run a MQTT Client or Broker concurrently with anything else. Another solution could be to use multithreading but asyncio is superior as it is faster (no context switching) and is already used in HBMQTT
 
 ### TKinter
-TKinter is a Python wrapper around the famous TK which is a GUI package for the TCL language. It has been used to write several notable desktop apps. The look and feel of TKinter is a bit archaic but is an effective and well-documented tool.
+TKinter is a Python wrapper around the famous TK which is a GUI package for the TCL language. It has been used to write several notable desktop apps. The look and feel of TKinter is a bit archaic but it is an effective and well-documented tool. Other alternatives were Kivy and Qt which is more modern GUI engine in Python. 
 
 ### Flask
-Flask is a microframework for writing web servers in Python. Our web service, hosted on AWS, has its backend written in Flask. With Flask it is extremely easy to develop and deploy web services.
+Flask is a microframework for writing web servers in Python. Our web service, hosted on AWS, has its backend written in Flask. With Flask it is extremely easy to develop and deploy web services. Flask is built ontop of Werkzeug which is a WSGI (Web Service Gateway Interface) library. WSGI is the Python standard for forwarding requests and responses between the actual web servers (typically Apache or Nginx) and the web application (written using f.x. Flask or Django). 
 
 ### uWSGI, nginx, systemd
 Flask servers can easily be deployed for testing, but it will then only be able to handle a few concurrent connection. To deploy for production we used the linux web server framework nginx to listen to port 80 and uWSGI to pipe incoming requests to the flask backend. The webserver is running on an Ubuntu machine hosted on AWS and this application is registred in systemd so that it automatically runs when the machine is booted.
@@ -83,7 +103,7 @@ For the *remote system* we use Python/Flask for the backend and Javascript, HTML
 
 
 ## Security
-Security is very importent for IOT systems like this and regularily security experts find serious flaws in these kind of systems. To protect our userdata the web userinterface is password protected, each customer will have need username and password to access the web user interface where he can see real time data and change control policy. To make POST or GET requests to the database interface each customer needs to attach an unique APIKEY to identify himself. These measures both provides security and also makes the whole system more scalable. Now we can easily accommodate several customers.
+Security is very importent for IOT systems like this and regularily security experts find serious flaws in these kind of systems. To protect our userdata the web user interface is password protected, each customer will have a username and password to access the web user interface where he can see real time data and change control policy. To make POST or GET requests to the database interface each customer needs to attach an unique APIKEY to identify himself, this API_KEY is currently just hardcoded into the config file running on the RPi. These measures both provides security and also makes the whole system more scalable. Now we can easily accommodate several customers. 
  
 ## Future improvements
 - Make an IFTTT service
