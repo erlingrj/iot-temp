@@ -21,11 +21,11 @@ With the advent of cheap microcontroller with networking capabilities solutions 
 The system can roughly be divided into the local and the *remote system* . The *local system*  consists of all the components that will be installed onsite with the customer, i.e. sensors, controllers, gateways etc. While the *remote system*  is the system in the cloud, i.e. remote database, web user interface etc.
 
 ### Local System (Raspberry Pi)
-The RPi is the key component in *local system*. It serves several functions that typically, for our hypothetical customers, would be divided between several components spread out over the building. Each of the functions are running in a separate process and communicating with another through MQTT thus we have a very scalable system.
+The RPi is the key component in *local system*. It serves several functions that typically, for our hypothetical customers, would be divided between several components spread out over the building. Each of the functions are running in a separate process and communicating with another through MQTT thus we have a very scalable system. In Fig. 1 you will see the layout of the *local system* running on the RPi.
 
-![alt text](doc/local_system.bmp "Fig. XX Local System")
+![alt text](doc/local_system.bmp "Local System")
 
-Fig XX. Local system
+Fig. 1: Local system
 
 
 #### Temperature Sensing
@@ -47,11 +47,11 @@ The MQTT Broker process implements an MQTT Broker that connects all the componen
 
 
 ### Remote system (Amazon Web Services)
-The *remote system*  is hosted at Amazon Web Services and is running on an Ubuntu EC2 instance in Paris. It contains a non relational database with a custom REST interface and a graphical user interface to be accessed with the browser.
+The *remote system*  is hosted at Amazon Web Services and is running on an Ubuntu EC2 instance in Paris. It contains a non relational database with a custom REST interface and a graphical user interface to be accessed with the browser. In Fig. 2 you see the layout of the *remote system* hosted on AWS.
 
 ![alt text](doc/remote_system.bmp "Fig. XX Local System")
 
-Fig XX. Remote system
+Fig. 2: Remote system
 
 #### Database
 We have two non relational databases hosted on AWS. The first is the full log. All the events broadcasted with MQTT in the *local system* is entered here. Fig. XX shows an entry with the different fields. The second database contains just a single entry per Customer as shown in Fig. XX, it holds the current value for the system variables, in our current case this is only *temperature* and *control policy*
@@ -63,21 +63,24 @@ The database interface is a REST interface that accepts GET requests and POST re
 |---|-|-|-|
 |123|0|23-06-2019T09:42:00|23.5|
 
-Fig XX. Entry of the Log database
+Fig. 3: Entry of the Log database
 
 | Customer ID | Timestamp-temperature | Temperature | Timestamp-control | Control | 
 |---|-|-|-|--|
 |123|24-06-2019T10:30:00|21.0|20-06-2019T08:38:00|17.0-17.0-17.0-18.0-18.0 ...|
 
-Fig. YY. Entry of the current value database
+Fig. 4: Entry of the current value database
 
 
 #### Web user interface
 The Web UI provides the user with a similar interface as the local GUI. It shows the current temperature and the current control policy. It lets the user change the control policy and it also lets the user see the average temperature for the last 24h and also the last week. The user input is stored in the database so that the Logger/Gateway can pull it later.
 
+
+Fig. 5 shows the full system. Notice that the Logger/Gateway makes up the interface of the *local system* to the outside world. The Logger/Gateway communicates with the AWS Databases through the Nginx Web Server piped through uWSGI processed by our Flask backend which pulls data from the DynamoDB databases and sends the responses back the same way.
+
 ![alt text](doc/full_system.bmp "Fig. XX Local System")
 
-Fig XX. Full system
+Fig. 5: Full system
 
 ## Technologies and frameworks
 This system touches on many areas from low level drivers sampling analog sensor input to styling of HTML pages for the browser. We have therefor used a variaty of frameworks, protocols and languages discussed below.
@@ -112,7 +115,7 @@ Flask servers can easily be deployed for testing, but it will then only be able 
 Amazon Web Services (AWS) is a brilliant cloud serivce by Amazon. With a few keystrokes you can boot up a linux machine on one of their worldwide servers, and host a webpage or a web service. With Amazon Lambda you can serve http requests without even running a web service. We have used EC2 to host our web server and DynamoDB for the databases.
 
 ### Programming languages
-All the components of the *local system*  is written with Python3. Python is very easy and well documented. It is becoming one of the most popular programming languages. It is superior to C and Java when it comes to the ease of which you can create packages(libraries) and share them with others. In Python it is extremely easy to test and explore APIs and datastructures. Just fire up the interactive shell and you can explore APIs, datastructures and packages without having to recompile and run. Python is an interpreted language and could only be used since we the *local system*  running on a full Operating System (Raspbian). If the *local system*  consisted of several small microcontrollers with less memory we would have used Rust.
+All the components of the *local system*  is written with Python3. Python is very easy and well documented objected-oriented interpreted programming language. It is superior to C and Java when it comes to the ease of which you can create packages(libraries) and share them with others. In Python it is extremely easy to test and explore APIs and datastructures. Just fire up the interactive shell and you can explore APIs, datastructures and packages without having to recompile and run again and again. Python is an interpreted language and could only be used since we the *local system*  running on a full Operating System (Raspbian) with the Python interpreter installed. To run Python "bare metal" is not common or effective. Python is inferior to f.x. C in terms of speed and size. But due to its simplicity we ended up with using Python for 80% of our code.
 
 For the *remote system* we use Python/Flask for the backend and Javascript, HTML and CSS for the frontend. 
 

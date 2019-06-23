@@ -1,6 +1,6 @@
 from hbmqtt.mqtt.constants import QOS_1
 
-TOPICS = {'temp': ('temp', QOS_1), 'temp_setpoint' : ('setpoint_topic', QOS_1), 'ping' : ('ping_topic', QOS_1)}
+TOPICS = {'temp': ('/sensors/temperature', QOS_1), 'temp_setpoint' : ('/user/control_policy', QOS_1), 'ping' : ('ping_topic', QOS_1)}
 REMOTE_AWS_GROUP_ID = 49
 BROKER_ADDR = 'ws://localhost:8080/'
 # THis is the default config of the Broker
