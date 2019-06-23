@@ -23,6 +23,10 @@ The system can roughly be divided into the local and the *remote system* . The *
 ### Local System (Raspberry Pi)
 The RPi is the key component in *local system*. It serves several functions that typically, for our hypothetical customers, would be divided between several components spread out over the building. Each of the functions are running in a separate process and communicating with another through MQTT thus we have a very scalable system.
 
+![alt text](doc/local_system.bmp "Fig. XX Local System")
+Fig XX. Local system
+
+
 #### Temperature Sensing
 The sensor process is polling the external temperature sensor at a user-specify interval. Each sample is broadcasted on a dedicated MQTT topic.
 
@@ -41,8 +45,11 @@ The Logger/Gateway process is the link between the *local system*  and the remot
 The MQTT Broker process implements an MQTT Broker that connects all the components of the *local system*.
 
 
-### Remote system  (Amazon Web Services)
+### Remote system (Amazon Web Services)
 The *remote system*  is hosted at Amazon Web Services and is running on an Ubuntu EC2 instance in Paris. It contains a non relational database with a custom REST interface and a graphical user interface to be accessed with the browser.
+
+![alt text](doc/remote-system.bmp "Fig. XX Local System")
+Fig XX. Remote system
 
 #### Database
 We have two non relational databases hosted on AWS. The first is the full log. All the events broadcasted with MQTT in the *local system* is entered here. Fig. XX shows an entry with the different fields. The second database contains just a single entry per Customer as shown in Fig. XX, it holds the current value for the system variables, in our current case this is only *temperature* and *control policy*
@@ -53,16 +60,21 @@ The database interface is a REST interface that accepts GET requests and POST re
 | Customer ID | Event ID | Timestamp | Data |
 |---|-|-|-|
 |123|0|23-06-2019T09:42:00|23.5|
+
 Fig XX. Entry of the Log database
 
 | Customer ID | Timestamp-temperature | Temperature | Timestamp-control | Control | 
 |---|-|-|-|--|
 |123|24-06-2019T10:30:00|21.0|20-06-2019T08:38:00|17.0-17.0-17.0-18.0-18.0 ...|
+
 Fig. YY. Entry of the current value database
 
 
 #### Web user interface
 The Web UI provides the user with a similar interface as the local GUI. It shows the current temperature and the current control policy. It lets the user change the control policy and it also lets the user see the average temperature for the last 24h and also the last week. The user input is stored in the database so that the Logger/Gateway can pull it later.
+
+![alt text](doc/full_system.bmp "Fig. XX Local System")
+Fig XX. Full system
 
 ## Technologies and frameworks
 This system touches on many areas from low level drivers sampling analog sensor input to styling of HTML pages for the browser. We have therefor used a variaty of frameworks, protocols and languages discussed below.
@@ -90,7 +102,7 @@ TKinter is a Python wrapper around the famous TK which is a GUI package for the 
 ### Flask
 Flask is a microframework for writing web servers in Python. Our web service, hosted on AWS, has its backend written in Flask. With Flask it is extremely easy to develop and deploy web services. Flask is built ontop of Werkzeug which is a WSGI (Web Service Gateway Interface) library. WSGI is the Python standard for forwarding requests and responses between the actual web servers (typically Apache or Nginx) and the web application (written using f.x. Flask or Django). 
 
-### uWSGI, nginx, systemd
+### uWSGI, Nginx, systemd
 Flask servers can easily be deployed for testing, but it will then only be able to handle a few concurrent connection. To deploy for production we used the linux web server framework nginx to listen to port 80 and uWSGI to pipe incoming requests to the flask backend. The webserver is running on an Ubuntu machine hosted on AWS and this application is registred in systemd so that it automatically runs when the machine is booted.
 
 ### Amazon Web Services
