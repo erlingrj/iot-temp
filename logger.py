@@ -258,7 +258,7 @@ def create_stats_for_plotting(entries, dates):
 
 def get_temp_1w():
     # Construct the dates for the different intervals.
-    resolution=4
+    resolution=7
     n_hours = 24*7
     n_entries = n_hours * 3600 / TEMP_SAMPLING_INTERVAL
     now = datetime.datetime.now()
@@ -269,23 +269,19 @@ def get_temp_1w():
     for i in range(int(n_hours/resolution),-1,-1):
         dates.append(now_rounded - i*h)
     dates.append(now.replace(microsecond = 0))
-    print(dates)
     # Get enough recent temp-entries
     entries = read_log(LogEntryType.TEMP, n_entries)
-    print(entries)
     values = create_stats_for_plotting(entries,dates)
 
     #Generate the strings for the plotting
-    str_labels = [date.strftime("%a %H:%M") for date in dates[0:-1]]
+    str_labels = [date.strftime("%-d/%m %H:%M") for date in dates[0:-1]]
 
     return (str_labels, values)
 
 def get_current_control_policy():
-    fo = open(CURRENT_POLICY_PATH, 'r')
-    line = fo.readlines()[0]
-    fo.close()
-    values = [float(x) for x in line.split('-')]
-    labels = ["02:00", "04:00", "08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00", "00:00"]
+    line = read_log(LogEntryType.CONTROL,1)
+    values = [float(x) for x in line[0]['Data'].split('-')]
+    labels = ["02:00", "04:00","06:00", "08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00", "00:00"]
     return labels, values
 
 def create_json(payload_dict):

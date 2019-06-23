@@ -2,13 +2,16 @@
 from mqtt_client import MQTT_Client
 from hbmqtt.mqtt.constants import QOS_1
 import asyncio
-import tkinter as Tk
+
 
 # Configuration of TOPICS and addresses
 from config import *
 
 # For exception handeling
 import sys
+
+# For accessing the log files:
+import logger
 
 
 # Just a variable used for conditional debugging prints
@@ -17,22 +20,36 @@ DEBUG = True
 
 import tkinter as tk
 from tkinter import ttk
+import math
 
 import matplotlib
 matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
+from matplotlib.backend_bases import MouseEvent
+import matplotlib.pyplot as plt
 
 
-LARGE_FONT = ("Verdana", 24)
+LARGE_FONT = ("Verdana", 12)
+XL_FONT = ("Verdana", 14)
 MENU_BUTTON_HEIGHT = 2
 MENU_BUTTON_COLOR = 'green'
-MENU_BUTTON_WIDTH = 15
-MENU_BUTTON_FONT = ("Verdana", 22)
+MENU_BUTTON_WIDTH = 16
+MENU_BUTTON_FONT = ("Verdana", 14)
 RPI_HEIGHT = 400
 RPI_WIDTH = 600
 
+FIGSIZE_X = 5.8
+FIGSIZE_Y = 3.5
 
+SUBPLOT_TITLE_SIZE = 8
+SUBPLOT_XTICKS_SIZE = 5
+
+MIN_CONTROL_TEMP = 15
+MAX_CONTROL_TEMP = 30
+
+MIN_TEMP = 0
+MAX_TEMP = 50
 
 class GUI(MQTT_Client):
     def __init__(self, *args, **kwargs):
@@ -42,23 +59,28 @@ class GUI(MQTT_Client):
         MQTT_Client.__init__(self)
         # Define my_topic
         #self.my_topic = [("TEMP", QOS_1)]
-        self.my_topic = [TOPICS['temp']]
+        self.my_topic = [TOPICS['temp'], TOPICS['temp_setpoint']]
         # Subscribe to the topic. This is done by letter asyncio-loop run that co-routine until completion
         # I.e. we will do that before continuting to the rest of the program.
         self.loop.run_until_complete(self.subscribe_to(self.my_topic))
         self.id = 2
-        
+
+        self.current_temp = 18.0
+        self.current_control = logger.get_current_control_policy()
+
         ## TKINTER STUFF
         self.root = tk.Tk()
+        self.root.geometry("{}x{}".format(RPI_WIDTH, RPI_HEIGHT,))
         self.tk_interval = 0.05
-        # Make the root container
-
+        # Make the root container which contains menu and page
         main_window = tk.Frame(self.root, height=RPI_HEIGHT, width=RPI_WIDTH)
-        main_window.pack(side="top", fill="both", expand = True)
+        main_window.pack(side="top")
         
         # make the menu frame
-        menu = tk.Frame(master=main_window, bg='lightblue')
-        page = tk.Frame(master=main_window)
+        menu = tk.Frame(master=main_window, bg='lightblue', width=RPI_WIDTH)
+        page = tk.Frame(master=main_window, width=RPI_WIDTH)
+
+        # Make buttons in menu
         self.button_dashboard = tk.Button(menu, text="Dashboard",
                                     bg=MENU_BUTTON_COLOR,
                                     font=MENU_BUTTON_FONT,
@@ -94,37 +116,25 @@ class GUI(MQTT_Client):
         )
         self.button_about.pack(side=tk.LEFT)
 
-        self.button_about = tk.Button(menu, text="Quit",
-                                    bg=MENU_BUTTON_COLOR,
-                                    font=MENU_BUTTON_FONT,
-                                    width=MENU_BUTTON_WIDTH,
-                                    height=MENU_BUTTON_HEIGHT,
-                                   command= lambda: exit(0)
-        )
-        self.button_about.pack(side=tk.LEFT)
-
-        
-
+        # Pack menu and page
         menu.pack(side=tk.TOP)
         page.pack(side=tk.TOP)
 
+        # Make all the frames and stack them ontop of each other
         self.frames = {}
 
         for F in (Dashboard, UpdateControlPolicy, Statistics, About):
-
             frame = F(page, self)
-
             self.frames[F] = frame
-
             frame.grid(row=0,column=0, sticky="nsew")
-
+        
+        # Current page=button is pressed
         self.menu_button_map = {'Dashboard': self.button_dashboard, 'UpdateControlPolicy': self.button_control, 'Statistics':self.button_statistics, 'About':self.button_about}
         self.current_button = self.button_dashboard
         self.show_frame(Dashboard)
 
-        
-        
-
+        # This function is called whenever we wanna change frame.
+        # It brings the desired frame to the top of the stack
     def show_frame(self, cont):
         self.current_button.config(relief=tk.RAISED)
         self.current_button = self.menu_button_map[cont.name]
@@ -146,23 +156,23 @@ class GUI(MQTT_Client):
         # structure to handle the different incoming packets.
         # We wish to display on the screen
         # First split the packet into its format (btw these things will eventually be implemented in functions)
-        data = payload_dict['Data']
-        self.frames[0].update_temperature(data)
+        if topic == TOPICS['temp'][0]: 
+            if DEBUG:
+                print("GUI recv new temp")  
+            data = payload_dict['Data']
+            self.current_temp = data
+            self.frames[Dashboard].update_temperature(data)
+        elif topic == TOPICS['temp_setpoint'][0]:
+            if DEBUG:
+                print("GUI recv new control_policy")
+            data = [float(x) for x in payload_dict['Data'].split('-')]
+            self.current_control = [CONTROL_LABELS,data]
+            self.frames[Dashboard].update_control(self.current_control)
+        elif topic == TOPICS['controller']:
+            if DEBUG:
+                print("GUI recv new controller ONOFF")
+            
 
-    # Functions for handeling button-events
-    def tkinter_set_temperature_button_pressed(self):
-        # Send the setpoint
-
-        #First create a bytestring to send
-        payload = b'%f' % float(self.temp_setpoint.get())
-        
-        # The we call the async function publish_to with the right topic
-        # We use ensure_future as it is an async function and we cannot call await on it
-        # since we are inside a non-async function
-        asyncio.ensure_future( self.publish_to(TOPICS['temp_setpoint'], payload) )
-
-        print("Set temperature button pressed\nSetpoint = {}".format(self.temp_setpoint.get()))
-        
     
     def run(self):
         """
@@ -195,18 +205,20 @@ class GUI(MQTT_Client):
             await asyncio.sleep(self.tk_interval) #tk_interval is defined in the __init__
         
  
+ # GUI frame is the parent of all the frames
+ # Any general code is implemented here
 class GuiFrame(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent,
                         height=RPI_HEIGHT,
                         width=RPI_WIDTH,
-                        bg='white',
-                        relief=tk.RIDGE)
+                        bg='white')
         self.controller = controller
+        self.parent = parent
     
     def refresh(self):
-        print("This has to be implemented. refresh page each time some shit happens")
-        
+        pass    
+    
 
 
 class Dashboard(GuiFrame):
@@ -216,67 +228,175 @@ class Dashboard(GuiFrame):
         self.temp_c = tk.DoubleVar()
         self.temp_c.set(24.3)
         label_temp = tk.Label(self, text="Temperature: ", font=LARGE_FONT)
-        label_celsius = tk.Label(self, textvariable=self.temp_c, font=LARGE_FONT)
-        label_control = tk.Label(self, text="Control Policy", font=LARGE_FONT)
+        label_celsius = tk.Label(self, textvariable=self.temp_c, font=XL_FONT)
         
         label_temp.pack(side=tk.TOP)
         label_celsius.pack(side=tk.TOP)
 
-        f = Figure(figsize=(10,3), dpi =100)
-        a_week = f.add_subplot(111)
-        a_week.plot([1,2,3,4,5,6,7,8],[5,6,1,3,8,9,3,5])
-
-        
-
-        canvas = FigureCanvasTkAgg(f, self)
+        self.figure = Figure(figsize=(FIGSIZE_X, FIGSIZE_Y-0.5))
+        self.control_plot = self.figure.add_subplot(111, ylabel="Temp [C]", title="Control Policy")
+        self.control_plot.set_ylim([MIN_CONTROL_TEMP, MAX_CONTROL_TEMP])
+        self.control_plot.plot(controller.current_control[0], controller.current_control[1], "ro-")
+        self.control_plot.grid()
+        canvas = FigureCanvasTkAgg(self.figure, self)
         canvas.draw()
         canvas.get_tk_widget().pack(side=tk.TOP)
+        self.figure.autofmt_xdate(rotation=45)
+
+    def plot(self, figure, data):
+        figure.clf()
+        self.control_plot = self.figure.add_subplot(111, ylabel="Temp [C]", title="Control Policy")
+        self.control_plot.plot(data[0], data[1], "ro-")
+        self.control_plot.set_ylim([MIN_CONTROL_TEMP, MAX_CONTROL_TEMP])
+        self.figure.autofmt_xdate(rotation=45)
+        self.control_plot.grid()
+        figure.canvas.draw_idle()
+
     
-    def update_temperature(temp):
-        print("YE")
-        self.temp_c.set(temp)
+    def update_temperature(self, temp):
+        self.temp_c.set(("{:.2f}C".format(float(temp))))
+
+    def update_control(self, control):
+        self.plot(self.figure, control)
+
+    def refresh(self):
+        self.plot(self.figure, self.controller.current_control)
+
+    
+
     name = "Dashboard"
 
 
 class UpdateControlPolicy(GuiFrame):
     def __init__(self, parent, controller):
         GuiFrame.__init__(self,parent,controller)
-        label = tk.Label(self, text="Update Control Policy!!!", font=LARGE_FONT)
-        label.pack(pady=10, padx=10)
 
+        button_update = tk.Button(self, text="Save", command= lambda: self.update_control())
+        button_reset = tk.Button(self, text="Reset", command = lambda : self.reset_control())
 
-        f = Figure(figsize=(10,3), dpi =100)
-        a_week = f.add_subplot(111)
-        a_week.plot(["Mon","Tue","Wed","Thu","Fri","Sat","Sun"], [1,2,3,4,5,6,7])
+        self.control_editable = controller.current_control[:]
 
+        self.figure = Figure(figsize=(FIGSIZE_X, FIGSIZE_Y))
+        
+        canvas = FigureCanvasTkAgg(self.figure, self)
+        canvas.draw()
+        canvas.get_tk_widget().pack(side=tk.TOP)
+
+        self.figure.canvas.mpl_connect('button_press_event', self._on_click)
+        self.figure.canvas.mpl_connect('button_release_event', self._on_release)
+        self.figure.canvas.mpl_connect('motion_notify_event', self._on_motion)
+        self._dragging_point = None
+
+        button_update.pack(side=tk.LEFT)
+        button_reset.pack(side=tk.LEFT)
 
         
 
-        canvas = FigureCanvasTkAgg(f, self)
-        canvas.draw()
-        canvas.get_tk_widget().pack(side=tk.TOP)
     
     name = "UpdateControlPolicy"
 
+    def plot(self,figure,data):
+        self.figure.clf()
+        self.figure.canvas.draw_idle()
+        self.control_plot = self.figure.add_subplot(111,xlabel='Time',ylabel='Temp[C]')
+        self.control_plot.tick_params(axis='x', which='major', labelsize=SUBPLOT_XTICKS_SIZE)
+        self.control_plot.set_ylim([MIN_CONTROL_TEMP, MAX_CONTROL_TEMP])
+        self.control_plot.plot(data[0], data[1], "ro-")
+        self.control_plot.grid()
+        self.figure.autofmt_xdate(rotation=45)
+
+
+    def refresh(self):
+        self.control_editable = self.controller.current_control[:]
+        self.plot(self.figure, self.control_editable)
+
+    def update_control(self):
+        self.controller.current_control,self.control_editable[:]
+        payload = "-".join(map(str,self.control_editable[1]))
+        # The we call the async function publish_to with the right topic
+        # We use ensure_future as it is an async function and we cannot call await on it
+        # since we are inside a non-async function
+        asyncio.ensure_future(self.controller.publish_to(TOPICS['temp_setpoint'][0], payload) )
+
+    def reset_control(self):
+        self.refresh()
+
+    def _on_click(self, event):
+        
+        if event.button == 1 and event.inaxes in [self.control_plot]:
+            point = self._find_neighbor_point(event)
+            print(point)
+            if point:
+                self._dragging_point = point
+    
+    def _on_release(self, event):
+        if self._dragging_point:
+            self._dragging_point = None
+
+    def _on_motion(self, event):
+        if self._dragging_point:
+            self.control_editable[1][self._dragging_point] = event.ydata
+            self.plot(self.figure, self.control_editable)
+    
+    def _find_neighbor_point(self, event):
+        distance_threshold = 1
+        nearest_point = None
+        min_distance = 10000
+        for x, y in enumerate(self.control_editable[1]):
+            zz=event.xdata
+            distance = math.hypot(event.xdata - x, event.ydata - y)
+            if distance < min_distance:
+                min_distance = distance
+                nearest_point = x
+        if min_distance < distance_threshold:
+            return nearest_point
+        return None
+
+
+    
 class Statistics(GuiFrame):
     def __init__(self, parent, controller):
         GuiFrame.__init__(self,parent,controller)
-        label = tk.Label(self, text="Statistics!!!", font=LARGE_FONT)
-        label.pack(pady=10, padx=10)
-
-        f = Figure(figsize=(10,7), dpi =100)
-        a_week = f.add_subplot(211)
-        a_week.plot([1,2,3,4,5,6,7,8],[5,6,1,3,8,9,3,5])
-
-        a_day = f.add_subplot(212)
-        a_day.plot([1,2,3,4,5,6,7,8],[5,6,1,3,8,9,3,5])
-
+        self.figure = Figure(figsize=(FIGSIZE_X, FIGSIZE_Y))
         
-
-        canvas = FigureCanvasTkAgg(f, self)
+        canvas = FigureCanvasTkAgg(self.figure, self)
         canvas.draw()
-        canvas.get_tk_widget().pack()
-    
+        canvas.get_tk_widget().pack(side=tk.TOP)
+
+
+    def plot(self, figure, last_week, last_24h):
+        print(last_week)
+        print(last_24h)
+        figure.clf()
+        self.week_plot = figure.add_subplot(211)
+        self.week_plot.set_title("Last week", fontsize=SUBPLOT_TITLE_SIZE)
+        self.week_plot.tick_params(axis='x', which='major', labelsize=SUBPLOT_XTICKS_SIZE)
+        self.week_plot.set_ylim([MIN_TEMP, MAX_TEMP])
+        self.week_plot.set_xlim([0,23])
+        self.week_plot.plot(last_week[0], last_week[1], "bo-")
+        self.week_plot.grid()
+
+        self.day_plot = figure.add_subplot(212)
+        self.day_plot.set_title("Last 24 hours", fontsize=SUBPLOT_TITLE_SIZE)
+        self.day_plot.tick_params(axis='x', which='major', labelsize=SUBPLOT_XTICKS_SIZE)
+        self.day_plot.set_ylim([MIN_TEMP, MAX_TEMP])
+        self.day_plot.set_xlim([0,23])
+        self.day_plot.plot(last_24h[0], last_24h[1], "bo-") 
+        self.day_plot.grid()
+
+        plt.setp(self.week_plot.get_xticklabels(), rotation=45, ha='right')
+        plt.setp(self.day_plot.get_xticklabels(), rotation=45, ha='right')
+
+        figure.tight_layout()
+        figure.canvas.draw_idle()
+
+
+    def refresh(self):
+        print("Refresh stats")
+        last_24h = logger.get_temp_24h()
+        last_week = logger.get_temp_1w()
+        self.plot(self.figure,last_week,last_24h)
+
     name = "Dashboard"
 class About(GuiFrame):
     def __init__(self, parent, controller):
@@ -287,6 +407,8 @@ class About(GuiFrame):
     name = "About"
 
         
+
+
 
 
 if __name__ == '__main__':
