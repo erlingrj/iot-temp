@@ -75,7 +75,6 @@ The database interface is a REST interface that accepts GET requests and POST re
 #### Web user interface
 The Web UI provides the user with a similar interface as the local GUI. It shows the current temperature and the current control policy. It lets the user change the control policy and it also lets the user see the average temperature for the last 24h and also the last week. The user input is stored in the database so that the Logger/Gateway can pull it later.
 
-
 Fig. 5 shows the full system. Notice that the Logger/Gateway makes up the interface of the *local system* to the outside world. The Logger/Gateway communicates with the AWS Databases through the Nginx Web Server piped through uWSGI processed by our Flask backend which pulls data from the DynamoDB databases and sends the responses back the same way.
 
 ![alt text](doc/full_system.bmp "Fig. XX Local System")
@@ -86,21 +85,21 @@ Fig. 5 shows the full system. Notice that the Logger/Gateway makes up the interf
 This system touches on many areas from low level drivers sampling analog sensor input to styling of HTML pages for the browser. We have therefor used a variaty of frameworks, protocols and languages discussed below.
 
 ### Programming languages
-All the components of the *local system* is written with Python3. Why use Python3?
+All the components of the *local system* is written with Python3. 
+Why use Python3?
 * Very popular and well-documented
 * A delightful package ecosystem (PyPi) where new libraries are downloaded or shared with a few keystrokes
 * Python Virtual Environment helps you avoid "dependency hell"
 * Extremely easy to test and explore Web APIs, library APIs, data structure and so on. Just fire up the interpreter and play around. (Unlike C where you have to recompile again and again and again ...)
-* Object oriented but also support functional paradigm. (Functions as first class citizens)
+* Object oriented but also support functional paradigm. (Functions as first class objects)
 
-Why not use Python?
+Why not use Python3?
 * Not lightweight. Needs a interpreter installed, typically only used if your hardware runs an OS.
 * More difficult to optimize for performance
 * Since it is interpreted bugs can show up at any time
 * If you are running on bare metal.
 
 For the *remote system* we use Python/Flask for the backend and Javascript, HTML and CSS for the frontend. Javascript/HTML/CSS is the most common languages for making web frontends, so we never really considered using anything else.
-
 
 ### MQTT
 Using MQTT was one of the main requirements and we have used it extensively. We have written our own MQTT Broker and MQTT Client using the Python package HBMQTT. All the processes of the *local system* is implementing either an MQTT Broker or a Client. MQTT is short for *Message Queuing Telemetry Transport* and is a lightweight publish and subsribe system that runs ontop of HTTP or WebSocket. MQTT clients, like the GUI, Temperature Sensor, Temperature Controller and Logger/Gateway, publish and subscribe messages to different topics. The Broker, or server, has the responisbility to distribute messages published on a certain topic to the clients subscribing to that topic. MQTT is becoming very popular for IoT solutions where we need to control devices remotely. There are several reasons for this popularity
@@ -113,6 +112,9 @@ MQTT can also guarantee different levels of reliability with the Quality of Serv
 - QoS_2: Acknowledged delivery: Message is resent until the Broker receives an acknowledgement from the client. The Client could receive duplicates.
 - QoS_3: Assured delivery: Client receives exactly one copy of the message. This is assured through a two-level handshake.
 
+For the first draft of our product we have used QoS_1 and are using the following three topics: */sensors/temperature*, */user/control_policy* and */controller/onoff*. A typical MQTT message payload, a temperature sample from the Temperature Sensor would look like this:
+**Timestamp=20-06-2019T08:38:00;Data=34.32913;Src=1**
+
 Using MQTT for communication between processes running on the same hardware introduces unnecessary overhead. The processes could easily have used Inter-Process Communication like FIFOs, Message Queues, Pipes or just reading and writing to the filesystem of the Pi. We chose to use MQTT even though because:
 
 #### MQTT makes our system scalable
@@ -121,31 +123,23 @@ We could easily have scaled up to a system with a 100 temperature sensors spread
 #### MQTT is valuable to learn
 MQTT is the number one M2M protocol for IoT so it is worth spending some time on it.
 
-
-For the first draft of our product we have used QoS_1 and are using the following three topics: */sensors/temperature*, */user/control_policy* and */controller/onoff*. 
-
-A typical MQTT message payload, a temperature sample from the Temperature Sensor would look like this:
-**Timestamp=20-06-2019T08:38:00;Data=34.32913;Src=1**
-
-
-
 ### HTTP
-We are using HTTP to connect the local and the *remote system* . The Gateway/Logger gets data from the *remote system*  by HTTP GET requests and publises data with HTTP POST requests. The Web UI is, of course, also served using HTTP.
+We are using HTTP to connect the local and the *remote system* . The Gateway/Logger gets data from the *remote system* by HTTP GET requests and publises data with HTTP POST requests. The Web UI is, of course, also served using HTTP. The fact that the Gateway/Logger of the *local system* is polling the *remote system* for new events introduces some overhead and latency. This could have been solved by using f.x. a WebSocket between the Gateway/Logger and the *remote system*. Then the *remote system* could post the new user input directly to the Gateway/Logger without needing the polling. 
 
 ### Asyncio
 Asyncio is another Python Package that is very central in the *local system* . It allows for single threaded multitasking and is necessary to run a MQTT Client or Broker concurrently with anything else. Another solution could be to use multithreading but asyncio is superior as it is faster (no context switching) and is already used in HBMQTT
 
 ### TKinter
-TKinter is a Python wrapper around the famous TK which is a GUI package for the TCL language. It has been used to write several notable desktop apps. The look and feel of TKinter is a bit archaic but it is an effective and well-documented tool. Other alternatives were Kivy and Qt which is more modern GUI engine in Python. 
+TKinter is a Python wrapper around the famous TK which is a GUI package for the TCL language. It has been used to write several notable desktop apps. The look and feel of TKinter is a bit archaic but it is an effective and well-documented tool and has been used for a series of well designed applications. Other alternatives were Kivy and Qt which are more modern GUI engines for Python. 
 
 ### Flask
-Flask is a microframework for writing web servers in Python. Our web service, hosted on AWS, has its backend written in Flask. With Flask it is extremely easy to develop and deploy web services. Flask is built ontop of Werkzeug which is a WSGI (Web Service Gateway Interface) library. WSGI is the Python standard for forwarding requests and responses between the actual web servers (typically Apache or Nginx) and the web application (written using f.x. Flask or Django). 
+Flask is a microframework for writing web apps in Python. Our web service, hosted on AWS, has its backend written in Flask. With Flask it is extremely easy to develop and deploy web services. Flask is built ontop of Werkzeug which is a WSGI (Web Service Gateway Interface) library. WSGI is the Python standard for forwarding requests and responses between the actual web servers (typically Apache or Nginx) and the web app (written using f.x. Flask or Django). 
 
 ### uWSGI, Nginx, systemd
 Flask servers can easily be deployed for testing, but it will then only be able to handle a few concurrent connection. To deploy for production we used the linux web server framework nginx to listen to port 80 and uWSGI to pipe incoming requests to the flask backend. The webserver is running on an Ubuntu machine hosted on AWS and this application is registred in systemd so that it automatically runs when the machine is booted.
 
 ### Amazon Web Services
-Amazon Web Services (AWS) is a brilliant cloud serivce by Amazon. With a few keystrokes you can boot up a linux machine on one of their worldwide servers, and host a webpage or a web service. With Amazon Lambda you can serve http requests without even running a web service. We have used EC2 to host our web server and DynamoDB for the databases.
+Amazon Web Services (AWS) is a brilliant cloud serivce by Amazon. With a few keystrokes you can boot up a linux machine on one of their worldwide servers, and host a webpage or a web service. With Amazon Lambda you can serve http requests without even running a web service. We have used EC2 to host our web server and DynamoDB for the databases. Other options include other cloud services as Google Cloud, Microsoft Azure but also hosting our own web service on for instance a RPi. We chose AWS because it is the most used Cloud Service and we had some experience with it beforehand.
 
 
 ## Security
