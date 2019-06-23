@@ -40,10 +40,10 @@ The controller process is subscribing to both the Temperature Topic and the Cont
 The graphical user interface (GUI) process displays the current temperature on the LCD screen and lets the user update the control policy and also view historical values of the temperature. The GUI subscribes to both the Temperature Topic and the Control Policy Topic. It accesses the local log file to display the historical values.
 
 #### Logger/Gateway
-The Logger/Gateway process is the link between the *local system*  and the remote web system. The Logger/Gateway subscribes to all the MQTT topics and logs them to a local file. It also makes HTTP Post requests to the remote web server to update the remote log. Moreove it periodically polls the remote web server to correct inconsistencies between the remote and local log. This is also how user input through the web ui is delivered to the *local system* . The Logger/Gateway also replies the Ping messages broadcasted from the MQTT Broker implemented by the Professor and Teaching Assistents.
+The Logger/Gateway process is the link between the *local system*  and the remote web system. The Logger/Gateway subscribes to all the MQTT topics and logs them to a local file. It also makes HTTP Post requests to the remote web server to update the remote log. Moreover it periodically polls the remote web server to correct inconsistencies between the remote and local log. This is also how user input from the Web UI is delivered to the *local system*. The Logger/Gateway also replies the Ping messages broadcasted from the MQTT Broker implemented by the Professor and Teaching Assistents.
 
 #### MQTT Broker
-The MQTT Broker process implements an MQTT Broker that connects all the components of the *local system*.
+The MQTT Broker process implements an MQTT Broker that connects all the components of the *local system*. It is based on the under-development Python Package HBMQTT. It is using WebSockets for attaching 
 
 
 ### Remote system (Amazon Web Services)
@@ -53,10 +53,10 @@ The *remote system*  is hosted at Amazon Web Services and is running on an Ubunt
 
 *Fig. 2: Remote system*
 
-#### Database
-We have two non relational databases hosted on AWS. The first is the full log. All the events broadcasted with MQTT in the *local system* is entered here. Fig. 3 shows an entry with the different fields. The second database contains just a single entry per Customer as shown in Fig. 4, it holds the current value for the system variables, in our current case this is only *temperature* and *control policy*
+#### Databases
+We have two non-relational DynamoDB databases hosted on AWS. The first is the full log. All the events broadcasted with MQTT in the *local system* is entered here. Fig. 3 shows an entry with the different fields. The second database contains just a single entry per Customer as shown in Fig. 4, it holds the current value for the system variables, in our current case this is only *temperature* and *control policy*
 
-The database interface is a REST interface that accepts GET requests and POST request to access *temperature* and *control policy* events. This interface is used by the Logger/Gateway process in the *local system* .
+The database interface is a REST interface that accepts GET requests and POST request to access *temperature* and *control policy* events. This interface is used by the Logger/Gateway process in the *local system* to synchronize.
 
 
 | Customer ID | Event ID | Timestamp | Data |
@@ -85,6 +85,23 @@ Fig. 5 shows the full system. Notice that the Logger/Gateway makes up the interf
 ## Technologies and frameworks
 This system touches on many areas from low level drivers sampling analog sensor input to styling of HTML pages for the browser. We have therefor used a variaty of frameworks, protocols and languages discussed below.
 
+### Programming languages
+All the components of the *local system* is written with Python3. Why use Python3?
+* Very popular and well-documented
+* A delightful package ecosystem (PyPi) where new libraries are downloaded or shared with a few keystrokes
+* Python Virtual Environment helps you avoid "dependency hell"
+* Extremely easy to test and explore Web APIs, library APIs, data structure and so on. Just fire up the interpreter and play around. (Unlike C where you have to recompile again and again and again ...)
+* Object oriented but also support functional paradigm. (Functions as first class citizens)
+
+Why not use Python?
+* Not lightweight. Needs a interpreter installed, typically only used if your hardware runs an OS.
+* More difficult to optimize for performance
+* Since it is interpreted bugs can show up at any time
+* If you are running on bare metal.
+
+For the *remote system* we use Python/Flask for the backend and Javascript, HTML and CSS for the frontend. Javascript/HTML/CSS is the most common languages for making web frontends, so we never really considered using anything else.
+
+
 ### MQTT
 Using MQTT was one of the main requirements and we have used it extensively. We have written our own MQTT Broker and MQTT Client using the Python package HBMQTT. All the processes of the *local system* is implementing either an MQTT Broker or a Client. MQTT is short for *Message Queuing Telemetry Transport* and is a lightweight publish and subsribe system that runs ontop of HTTP or WebSocket. MQTT clients, like the GUI, Temperature Sensor, Temperature Controller and Logger/Gateway, publish and subscribe messages to different topics. The Broker, or server, has the responisbility to distribute messages published on a certain topic to the clients subscribing to that topic. MQTT is becoming very popular for IoT solutions where we need to control devices remotely. There are several reasons for this popularity
 - MQTT is open source. Anyone can inspect the source code and also make improvements or adjustments
@@ -96,10 +113,21 @@ MQTT can also guarantee different levels of reliability with the Quality of Serv
 - QoS_2: Acknowledged delivery: Message is resent until the Broker receives an acknowledgement from the client. The Client could receive duplicates.
 - QoS_3: Assured delivery: Client receives exactly one copy of the message. This is assured through a two-level handshake.
 
+Using MQTT for communication between processes running on the same hardware introduces unnecessary overhead. The processes could easily have used Inter-Process Communication like FIFOs, Message Queues, Pipes or just reading and writing to the filesystem of the Pi. We chose to use MQTT even though because:
+
+#### MQTT makes our system scalable
+We could easily have scaled up to a system with a 100 temperature sensors spread out over a building and the GUI and Gateway running on a separate machine somewhere in the building. We could also have temperature controllers spread out over the building controlling heaters/ACs.
+
+#### MQTT is valuable to learn
+MQTT is the number one M2M protocol for IoT so it is worth spending some time on it.
+
+
 For the first draft of our product we have used QoS_1 and are using the following three topics: */sensors/temperature*, */user/control_policy* and */controller/onoff*. 
 
 A typical MQTT message payload, a temperature sample from the Temperature Sensor would look like this:
 **Timestamp=20-06-2019T08:38:00;Data=34.32913;Src=1**
+
+
 
 ### HTTP
 We are using HTTP to connect the local and the *remote system* . The Gateway/Logger gets data from the *remote system*  by HTTP GET requests and publises data with HTTP POST requests. The Web UI is, of course, also served using HTTP.
@@ -119,11 +147,6 @@ Flask servers can easily be deployed for testing, but it will then only be able 
 ### Amazon Web Services
 Amazon Web Services (AWS) is a brilliant cloud serivce by Amazon. With a few keystrokes you can boot up a linux machine on one of their worldwide servers, and host a webpage or a web service. With Amazon Lambda you can serve http requests without even running a web service. We have used EC2 to host our web server and DynamoDB for the databases.
 
-### Programming languages
-All the components of the *local system*  is written with Python3. Python is very easy and well documented objected-oriented interpreted programming language. It is superior to C and Java when it comes to the ease of which you can create packages(libraries) and share them with others. In Python it is extremely easy to test and explore APIs and datastructures. Just fire up the interactive shell and you can explore APIs, datastructures and packages without having to recompile and run again and again. Python is an interpreted language and could only be used since we the *local system*  running on a full Operating System (Raspbian) with the Python interpreter installed. To run Python "bare metal" is not common or effective. Python is inferior to f.x. C in terms of speed and size. But due to its simplicity we ended up with using Python for 80% of our code.
-
-For the *remote system* we use Python/Flask for the backend and Javascript, HTML and CSS for the frontend. 
-
 
 ## Security
 Security is very importent for IOT systems like this and regularily security experts find serious flaws in these kind of systems. To protect our userdata the web user interface is password protected, each customer will have a username and password to access the web user interface where he can see real time data and change control policy. To make POST or GET requests to the database interface each customer needs to attach an unique APIKEY to identify himself, this API_KEY is currently just hardcoded into the config file running on the RPi. These measures both provides security and also makes the whole system more scalable. Now we can easily accommodate several customers. 
@@ -132,6 +155,7 @@ Security is very importent for IOT systems like this and regularily security exp
 - Make an IFTTT service
 - Use secure connections (HTTPS)
 - Use crypthography to ensure privacy between *local* and *remote system* 
+- Secure the MQTT against subscriptions and publishing from unauthorized agents.
 - On the design side there is alot of improvements to be made. But we are engineers, not designers :)
 
 
