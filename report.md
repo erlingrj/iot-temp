@@ -1,7 +1,7 @@
 # Project and laboratories on communication systems
 * Group 49
 * Erling Rennemo Jellum S263558
-* Behzad (insert name)
+* Mahmoud Bahmani S246318
 
 ## Introduction
 With the advent of cheap microcontroller with networking capabilities solutions for automation in buildings is gaining traction. Our hypothetical customer is the maintainers of large scale industrial, public or commercial buildings like factories, universities or hotels. The aim of the project is to create a system for measuring and controlling the temperature in a building as well as providing an intuitiv interface to the system. There is an emphasis on using the M2M protocol MQTT for communication purposes. 
@@ -24,6 +24,7 @@ The system can roughly be divided into the local and the *remote system* . The *
 The RPi is the key component in *local system*. It serves several functions that typically, for our hypothetical customers, would be divided between several components spread out over the building. Each of the functions are running in a separate process and communicating with another through MQTT thus we have a very scalable system.
 
 ![alt text](doc/local_system.bmp "Fig. XX Local System")
+
 Fig XX. Local system
 
 
@@ -49,6 +50,7 @@ The MQTT Broker process implements an MQTT Broker that connects all the componen
 The *remote system*  is hosted at Amazon Web Services and is running on an Ubuntu EC2 instance in Paris. It contains a non relational database with a custom REST interface and a graphical user interface to be accessed with the browser.
 
 ![alt text](doc/remote_system.bmp "Fig. XX Local System")
+
 Fig XX. Remote system
 
 #### Database
@@ -74,6 +76,7 @@ Fig. YY. Entry of the current value database
 The Web UI provides the user with a similar interface as the local GUI. It shows the current temperature and the current control policy. It lets the user change the control policy and it also lets the user see the average temperature for the last 24h and also the last week. The user input is stored in the database so that the Logger/Gateway can pull it later.
 
 ![alt text](doc/full_system.bmp "Fig. XX Local System")
+
 Fig XX. Full system
 
 ## Technologies and frameworks
