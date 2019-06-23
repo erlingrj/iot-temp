@@ -18,14 +18,14 @@ With the advent of cheap microcontroller with networking capabilities solutions 
 
 
 ## Architecture
-The system can roughly be divided into the local and the *remote system* . The *local system*  consists of all the components that will be installed onsite with the customer, i.e. sensors, controllers, gateways etc. While the *remote system*  is the system in the cloud, i.e. remote database, web user interface etc.
+The system can roughly be divided into the *local* and the *remote system*. The *local system* consists of all the components that will be installed onsite with the customer, i.e. sensors, controllers, gateways etc. While the *remote system* is the system in the cloud, i.e. remote database, web user interface etc.
 
 ### Local System (Raspberry Pi)
 The RPi is the key component in *local system*. It serves several functions that typically, for our hypothetical customers, would be divided between several components spread out over the building. Each of the functions are running in a separate process and communicating with another through MQTT thus we have a very scalable system. In Fig. 1 you will see the layout of the *local system* running on the RPi.
 
 ![alt text](doc/local_system.bmp "Local System")
 
-Fig. 1: Local system
+*Fig. 1: Local system*
 
 
 #### Temperature Sensing
@@ -51,10 +51,10 @@ The *remote system*  is hosted at Amazon Web Services and is running on an Ubunt
 
 ![alt text](doc/remote_system.bmp "Fig. XX Local System")
 
-Fig. 2: Remote system
+*Fig. 2: Remote system*
 
 #### Database
-We have two non relational databases hosted on AWS. The first is the full log. All the events broadcasted with MQTT in the *local system* is entered here. Fig. XX shows an entry with the different fields. The second database contains just a single entry per Customer as shown in Fig. XX, it holds the current value for the system variables, in our current case this is only *temperature* and *control policy*
+We have two non relational databases hosted on AWS. The first is the full log. All the events broadcasted with MQTT in the *local system* is entered here. Fig. 3 shows an entry with the different fields. The second database contains just a single entry per Customer as shown in Fig. 4, it holds the current value for the system variables, in our current case this is only *temperature* and *control policy*
 
 The database interface is a REST interface that accepts GET requests and POST request to access *temperature* and *control policy* events. This interface is used by the Logger/Gateway process in the *local system* .
 
@@ -63,13 +63,13 @@ The database interface is a REST interface that accepts GET requests and POST re
 |---|-|-|-|
 |123|0|23-06-2019T09:42:00|23.5|
 
-Fig. 3: Entry of the Log database
+*Fig. 3: Entry of the Log database*
 
 | Customer ID | Timestamp-temperature | Temperature | Timestamp-control | Control | 
 |---|-|-|-|--|
 |123|24-06-2019T10:30:00|21.0|20-06-2019T08:38:00|17.0-17.0-17.0-18.0-18.0 ...|
 
-Fig. 4: Entry of the current value database
+*Fig. 4: Entry of the current value database*
 
 
 #### Web user interface
@@ -80,7 +80,7 @@ Fig. 5 shows the full system. Notice that the Logger/Gateway makes up the interf
 
 ![alt text](doc/full_system.bmp "Fig. XX Local System")
 
-Fig. 5: Full system
+*Fig. 5: Full system*
 
 ## Technologies and frameworks
 This system touches on many areas from low level drivers sampling analog sensor input to styling of HTML pages for the browser. We have therefor used a variaty of frameworks, protocols and languages discussed below.
@@ -95,6 +95,11 @@ MQTT can also guarantee different levels of reliability with the Quality of Serv
 - QoS_1: Fire and forget. Message is sent only once and no acknowledgement is required from the client
 - QoS_2: Acknowledged delivery: Message is resent until the Broker receives an acknowledgement from the client. The Client could receive duplicates.
 - QoS_3: Assured delivery: Client receives exactly one copy of the message. This is assured through a two-level handshake.
+
+For the first draft of our product we have used QoS_1 and are using the following three topics: */sensors/temperature*, */user/control_policy* and */controller/onoff*. 
+
+A typical MQTT message payload, a temperature sample from the Temperature Sensor would look like this:
+**Timestamp=20-06-2019T08:38:00;Data=34.32913;Src=1**
 
 ### HTTP
 We are using HTTP to connect the local and the *remote system* . The Gateway/Logger gets data from the *remote system*  by HTTP GET requests and publises data with HTTP POST requests. The Web UI is, of course, also served using HTTP.
