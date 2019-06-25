@@ -22,6 +22,7 @@ import argparse
 import json
 import datetime 
 AllowedActions = ['both', 'publish', 'subscribe']
+PATH_TO_HOME='/home/pi/iot-temp/ping_service'
 
 class PingService():
     def __init__(self):
@@ -29,9 +30,9 @@ class PingService():
         # Read in command-line parameters
         parser = argparse.ArgumentParser()
         parser.add_argument("-e", "--endpoint", action="store", default="a3cezb6rg1vyed-ats.iot.us-west-2.amazonaws.com", dest="host", help="Your AWS IoT custom endpoint")
-        parser.add_argument("-r", "--rootCA", action="store", default="root-CA.crt", dest="{}/rootCAPath".format(PATH_TO_HOME), help="Root CA file path")
-        parser.add_argument("-c", "--cert", action="store", default="PL-student.cert.pem", dest="{}/certificatePath".format(PATH_TO_HOME), help="Certificate file path")
-        parser.add_argument("-k", "--key", action="store", default="PL-student.private.key", dest="{}/privateKeyPath".format(PATH_TO_HOME), help="Private key file path")
+        parser.add_argument("-r", "--rootCA", action="store", default="{}/root-CA.crt".format(PATH_TO_HOME), dest="rootCAPath", help="Root CA file path")
+        parser.add_argument("-c", "--cert", action="store", default="{}/PL-student.cert.pem".format(PATH_TO_HOME), dest="certificatePath", help="Certificate file path")
+        parser.add_argument("-k", "--key", action="store", default="{}/PL-student.private.key".format(PATH_TO_HOME), dest="privateKeyPath", help="Private key file path")
         parser.add_argument("-p", "--port", action="store", dest="port", type=int, help="Port number override")
         parser.add_argument("-w", "--websocket", action="store_true", dest="useWebsocket", default=False,
                             help="Use MQTT over WebSocket")

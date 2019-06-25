@@ -3,8 +3,7 @@ import time
 import multiprocessing
 from multiprocessing import Process
 
-
-
+from ping_service import pingService
 import gui
 import mqtt_server
 import controller
@@ -24,6 +23,8 @@ if __name__ == '__main__':
     procs.append(P_sensor)
     P_logger = Process(target=logger.run)
     procs.append(P_logger)
+    P_ping = Process(target=pingService.run)
+    procs.append(P_ping)
 
     for p in procs:
         p.start()
