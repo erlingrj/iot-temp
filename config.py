@@ -33,8 +33,8 @@ BROKER_CONFIG = {
 WEBSERVICE_IP = 'localhost'
 WEBSERVICE_PORT = 8888
 
-LOG_FILE_PATH = 'log/log.txt'
-CURRENT_POLICY_PATH = 'log/current-control.txt'
+LOG_FILE_PATH = 'log/log.db'
+CURRENT_STATE_PATH = 'log/current-state.db'
 
 SERVER_PATH = "http://35.180.58.140"
 #"http://127.0.0.1:5000"

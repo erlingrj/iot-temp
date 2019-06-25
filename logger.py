@@ -60,7 +60,8 @@ class Logger(MQTT_Client):
         self.log_to_local_file(topic, payload_dict)
         self.log_to_remote_db(topic, payload_dict)
 
-        # If we have a new 
+        if topic == TOPICS['temp'][0] or topic == TOPICS['temp_setpoint'][0]:
+            self.update_current_value_log(topic, payload_dict)
 
     def log_to_local_file(self, topic, payload_dict):
         # Open file
@@ -96,6 +97,30 @@ class Logger(MQTT_Client):
             except Exception as e:
                 print(e)
                 print("No internet connection to log_to_remote_db")
+
+    def update_current_value_log(self, topic, payload_dict):
+        print("JADDA")
+        fo = open(CURRENT_STATE_PATH, "r")
+        entry = fo.readlines()[0]
+        fo.close()
+        entry_dict = dict(item.split('=') for item in entry.split(';'))
+        if topic == TOPICS['temp'][0]:
+            entry_dict['TimestampTemp'] = payload_dict['Timestamp']
+            entry_dict['Temp'] = payload_dict['Data']
+        elif topic == TOPICS['temp_setpoint'][0]:
+            entry_dict['TimestampControl'] = payload_dict['Timestamp']
+            entry_dict['Control'] = payload_dict['Data']
+        new_entry = ""
+        for key,val in entry_dict.items():
+            new_entry += "{}={};".format(key,val)
+        new_entry = new_entry[:-1]
+        print(new_entry)
+        
+        fo = open(CURRENT_STATE_PATH, "w")
+        fo.write(new_entry)
+        fo.close()
+
+
     
     async def poll_remote_db(self):
         # Poll last entry from DB
@@ -189,6 +214,13 @@ def read_log(entryType, nEntries):
     fo.close()
     return entries
 
+def read_current_state_log():
+    fo = open(CURRENT_STATE_PATH, "r")
+    entry = fo.readlines()[0]
+    fo.close()
+    return dict(item.split('=') for item in entry.split(';'))
+
+
 
 def compare_local_log(db_entry, entryType):
     last_local_entry = read_log(entryType, nEntries = 1)
@@ -279,10 +311,10 @@ def get_temp_1w():
     return (str_labels, values)
 
 def get_current_control_policy():
-    line = read_log(LogEntryType.CONTROL,1)
-    values = [float(x) for x in line[0]['Data'].split('-')]
+    current_state = read_current_state_log()
+    values = [float(x) for x in current_state['Control'].split('-')]
     labels = ["02:00", "04:00","06:00", "08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00", "00:00"]
-    return labels, values
+    return [labels, values]
 
 def create_json(payload_dict):
     data  = {}
