@@ -32,9 +32,10 @@ BROKER_CONFIG = {
 
 WEBSERVICE_IP = 'localhost'
 WEBSERVICE_PORT = 8888
+PATH_TO_HOME='/home/pi/iot-temp'
 
-LOG_FILE_PATH = 'log/log.db'
-CURRENT_STATE_PATH = 'log/current-state.db'
+LOG_FILE_PATH = '{}/log/log.db'.format(PATH_TO_HOME)
+CURRENT_STATE_PATH = '{}/log/current-state.db'.format(PATH_TO_HOME)
 
 SERVER_PATH = "http://35.180.58.140"
 #"http://127.0.0.1:5000"
