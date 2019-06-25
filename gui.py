@@ -408,9 +408,11 @@ class About(GuiFrame):
 
         
 
+def run():
+    G = GUI()
+    G.run()
 
 
 
 if __name__ == '__main__':
-    GUI = GUI()
-    GUI.run()
+    run()

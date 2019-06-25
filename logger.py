@@ -325,7 +325,9 @@ def create_json(payload_dict):
     return json.dumps(data)
 
 
+def run():
+    L = Logger()
+    L.run()
 
 if __name__ == '__main__':
-    MyLogger = Logger()
-    MyLogger.run()
+    run()

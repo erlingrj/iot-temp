@@ -16,8 +16,7 @@ async def broker_coro():
     # Yield from => run the function and wait until it returns
     await broker.start()
 
-
-if __name__ == '__main__':
+def run_broker():
     # Setting up logging to the terminal
     formatter = "[%(asctime)s] :: %(levelname)s :: %(name)s :: %(message)s"
     logging.basicConfig(level=logging.INFO, format=formatter)
@@ -26,4 +25,8 @@ if __name__ == '__main__':
     asyncio.get_event_loop().run_until_complete(broker_coro())
     # THen just loop forever. I dont think we ever reach this point in the code
     asyncio.get_event_loop().run_forever()
+
+
+if __name__ == '__main__':
+    run_broker()
 

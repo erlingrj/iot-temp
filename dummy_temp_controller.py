@@ -56,7 +56,9 @@ class TempController(MQTT_Client):
         finally:
             self.loop.close()
 
-
-if __name__ == '__main__':
+def run():
     TC = TempController()
     TC.run()
+
+if __name__ == '__main__':
+    run()

@@ -57,8 +57,10 @@ class TempSensor(MQTT_Client):
         finally:
             self.loop.close()
 
-
-if __name__ == '__main__':
+def run():
     T = TempSensor()
     T.run()
+
+if __name__ == '__main__':
+    run()
 
