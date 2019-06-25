@@ -54,8 +54,8 @@ class GUI(MQTT_Client):
 
         ## TKINTER STUFF
         self.root = tk.Tk()
-        #self.root.overrideredirect(True)
-        #self.root.geometry("{0}x{1}+0+0".format(self.root.winfo_screenwidth(), self.root.winfo_screenheight()))
+        self.root.overrideredirect(True)
+        self.root.geometry("{0}x{1}+0+0".format(self.root.winfo_screenwidth(), self.root.winfo_screenheight()))
         self.tk_interval = 0.05
         # Make the root container which contains menu and page
         main_window = tk.Frame(self.root, height=RPI_HEIGHT, width=RPI_WIDTH)
@@ -161,6 +161,7 @@ class GUI(MQTT_Client):
             data = payload_dict['Data']
             self.current_temp = data
             self.frames[Dashboard].update_temperature(data)
+            self.frames[Statistics].out_dated = True
         elif topic == TOPICS['temp_setpoint'][0]:
             if DEBUG:
                 print("GUI recv new control_policy")
@@ -350,8 +351,7 @@ class UpdateControlPolicy(GuiFrame):
     
     def _on_release(self, event):
         if self._dragging_point:
-            self.control_editable[1][self._dragging_point] = float(round(event.ydata),1)
-            self._update_plot(self.control_editable)
+            self.control_editable[1][self._dragging_point] = float(round(event.ydata,1))
             self._dragging_point = None
 
     def _on_motion(self, event):
@@ -379,7 +379,7 @@ class Statistics(GuiFrame):
     def __init__(self, parent, controller):
         GuiFrame.__init__(self,parent,controller)
         self.figure = Figure(figsize=(FIGSIZE_X, FIGSIZE_Y))
-        
+        self.out_dated = True
         canvas = FigureCanvasTkAgg(self.figure, self)
         canvas.draw()
         canvas.get_tk_widget().pack(side=tk.TOP)
@@ -411,9 +411,11 @@ class Statistics(GuiFrame):
 
 
     def refresh(self):
-        last_24h = logger.get_temp_24h()
-        last_week = logger.get_temp_1w()
-        self.plot(self.figure,last_week,last_24h)
+        if out_dated:
+            last_24h = logger.get_temp_24h()
+            last_week = logger.get_temp_1w()
+            self.plot(self.figure,last_week,last_24h)
+            self.out_dated = False
 
     name = "Dashboard"
 class About(GuiFrame):
