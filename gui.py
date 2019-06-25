@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 # Dummy GUI just printing date + current temp to the stdout
 from mqtt_client import MQTT_Client
 from hbmqtt.mqtt.constants import QOS_1
@@ -32,7 +34,7 @@ from matplotlib.figure import Figure
 from matplotlib.backend_bases import MouseEvent
 import matplotlib.pyplot as plt
 
-
+os.environ['DISPLAY'] = ":0"
 class GUI(MQTT_Client):
     def __init__(self, *args, **kwargs):
         ##MQTT STUFF
@@ -139,7 +141,6 @@ class GUI(MQTT_Client):
         frame = self.frames[cont]
         frame.refresh()
         frame.tkraise()
-        print(self.current_button)
         
     def packet_received_cb(self,topic, payload_dict):
         """
