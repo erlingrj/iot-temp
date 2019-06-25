@@ -7,8 +7,8 @@ from multiprocessing import Process
 
 import gui
 import mqtt_server
-import dummy_temp_controller
-import dummy_temp_sensor
+import controller
+import sensor
 import logger
 
 if __name__ == '__main__':
@@ -16,14 +16,14 @@ if __name__ == '__main__':
     procs = []
     P_broker = Process(target=mqtt_server.run_broker)
     procs.append(P_broker)
-    P_controller = Process(target=dummy_temp_controller.run)
+    P_gui = Process(target=gui.run)
+    procs.append(P_gui)
+    P_controller = Process(target=controller.run)
     procs.append(P_controller)
-    P_sensor = Process(target=dummy_temp_sensor.run)
+    P_sensor = Process(target=sensor.run)
     procs.append(P_sensor)
     P_logger = Process(target=logger.run)
     procs.append(P_logger)
-    P_gui = Process(target=gui.run)
-    procs.append(P_gui)
 
     for p in procs:
         p.start()

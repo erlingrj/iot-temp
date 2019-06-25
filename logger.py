@@ -24,6 +24,7 @@ from enum import Enum
 class LogEntryType(Enum):
     TEMP = 0
     CONTROL = 1
+    CONTROLLER=3
 
 # For IO
 from file_read_backwards import FileReadBackwards
@@ -242,7 +243,7 @@ def get_temp_24h():
     # Construct the dates for the different intervals.
     resolution = 1
     n_hours = 24
-    n_entries = n_hours * 3600 / TEMP_SAMPLING_INTERVAL
+    n_entries = n_hours * 3600 /SENSOR_SAMPLING_INTERVAL_S 
     now = datetime.datetime.now()
     h = datetime.timedelta(hours=1)
     now_rounded = now.replace(minute = 0, second=0, microsecond=0)
@@ -292,7 +293,7 @@ def get_temp_1w():
     # Construct the dates for the different intervals.
     resolution=7
     n_hours = 24*7
-    n_entries = n_hours * 3600 / TEMP_SAMPLING_INTERVAL
+    n_entries = n_hours * 3600 /SENSOR_SAMPLING_INTERVAL_S
     now = datetime.datetime.now()
     h = datetime.timedelta(hours=resolution)
     now_rounded = now.replace(minute = 0, second=0, microsecond=0)
@@ -315,6 +316,11 @@ def get_current_control_policy():
     values = [float(x) for x in current_state['Control'].split('-')]
     labels = ["02:00", "04:00","06:00", "08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00", "00:00"]
     return [labels, values]
+
+def get_current_temp():
+    current_state = read_current_state_log()
+    value = float(current_state['Temp']);
+    return value
 
 def create_json(payload_dict):
     data  = {}

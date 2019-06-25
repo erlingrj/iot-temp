@@ -17,7 +17,7 @@ import os
 
 # For accessing the log files:
 import logger
-
+import time
 
 # Just a variable used for conditional debugging prints
 DEBUG = True
@@ -43,33 +43,39 @@ class GUI(MQTT_Client):
         MQTT_Client.__init__(self)
         # Define my_topic
         #self.my_topic = [("TEMP", QOS_1)]
-        self.my_topic = [TOPICS['temp'], TOPICS['temp_setpoint']]
+        self.my_topic = [TOPICS['temp'], TOPICS['temp_setpoint'], TOPICS['controller']]
         # Subscribe to the topic. This is done by letter asyncio-loop run that co-routine until completion
         # I.e. we will do that before continuting to the rest of the program.
         self.loop.run_until_complete(self.subscribe_to(self.my_topic))
         self.id = 2
 
-        self.current_temp = 18.0
-        self.current_control = copy.deepcopy(logger.get_current_control_policy())
+        self.current_temp = logger.get_current_temp()
+        self.current_control = logger.get_current_control_policy()
+        self.heater = "N/A"
+        self.ac = "N/A"
 
         ## TKINTER STUFF
         self.root = tk.Tk()
+        h = self.root.winfo_screenheight()
+        w = self.root.winfo_screenwidth()
         self.root.overrideredirect(True)
-        self.root.geometry("{0}x{1}+0+0".format(self.root.winfo_screenwidth(), self.root.winfo_screenheight()))
+        self.root.geometry("{0}x{1}+0+0".format(w,h))
         self.tk_interval = 0.05
+        self.root.pack_propagate(0)
+        self.root.grid_propagate(0)
         # Make the root container which contains menu and page
-        main_window = tk.Frame(self.root, height=RPI_HEIGHT, width=RPI_WIDTH)
-        main_window.pack(side="top")
-        
+        main_window = tk.Frame(self.root,height=h, width=w) 
+        main_window.pack(side=tk.TOP,anchor=tk.N, fill=tk.BOTH, expand=False)
         # make the menu frame
-        menu = tk.Frame(master=main_window, bg='lightblue', width=RPI_WIDTH)
-        page = tk.Frame(master=main_window, width=RPI_WIDTH)
+        menu = tk.Frame(master=main_window, bg='lightblue', width=w,height=MENU_BUTTON_HEIGHT)
+        page = tk.Frame(master=main_window, width=w, height=h-MENU_BUTTON_HEIGHT)
 
         # Make buttons in menu
         self.button_dashboard = tk.Button(menu, text="Dashboard",
-                                    bg=MENU_BUTTON_COLOR,
+                                    bg=MENU_COLOR_RGB,
                                     font=MENU_BUTTON_FONT,
                                     width=MENU_BUTTON_WIDTH,
+                                    fg=MENU_COLOR_FG_RGB,
                                     height=MENU_BUTTON_HEIGHT,
                                    command= lambda: self.show_frame(Dashboard),
                                    relief=tk.SUNKEN
@@ -77,8 +83,9 @@ class GUI(MQTT_Client):
         self.button_dashboard.pack(side=tk.LEFT)
 
         self.button_control = tk.Button(menu, text="Control Policy",
-                                    bg=MENU_BUTTON_COLOR,
+                                    bg=MENU_COLOR_RGB,
                                     font=MENU_BUTTON_FONT,
+                                    fg=MENU_COLOR_FG_RGB,
                                     width=MENU_BUTTON_WIDTH,
                                     height=MENU_BUTTON_HEIGHT,
                                    command= lambda: self.show_frame(UpdateControlPolicy),
@@ -86,9 +93,10 @@ class GUI(MQTT_Client):
         )
         self.button_control.pack(side=tk.LEFT)
         self.button_statistics = tk.Button(menu, text="Statistics",
-                                    bg=MENU_BUTTON_COLOR,
+                                    bg=MENU_COLOR_RGB,
                                     font=MENU_BUTTON_FONT,
                                     width=MENU_BUTTON_WIDTH,
+                                    fg=MENU_COLOR_FG_RGB,
                                     height=MENU_BUTTON_HEIGHT,
                                    command= lambda: self.show_frame(Statistics),
                                    relief=tk.RAISED
@@ -96,7 +104,8 @@ class GUI(MQTT_Client):
         self.button_statistics.pack(side=tk.LEFT)
 
         self.button_about = tk.Button(menu, text="About",
-                                    bg=MENU_BUTTON_COLOR,
+                                    bg=MENU_COLOR_RGB,
+                                    fg=MENU_COLOR_FG_RGB,
                                     font=MENU_BUTTON_FONT,
                                     width=MENU_BUTTON_WIDTH,
                                     height=MENU_BUTTON_HEIGHT,
@@ -106,7 +115,8 @@ class GUI(MQTT_Client):
         self.button_about.pack(side=tk.LEFT)
 
         self.button_quit = tk.Button(menu, text="Quit",
-                                    bg=MENU_BUTTON_COLOR,
+                                    bg=MENU_COLOR_RGB,
+                                    fg=MENU_COLOR_FG_RGB,
                                     font=MENU_BUTTON_FONT,
                                     width=MENU_BUTTON_WIDTH,
                                     height=MENU_BUTTON_HEIGHT,
@@ -116,8 +126,8 @@ class GUI(MQTT_Client):
         self.button_quit.pack(side=tk.LEFT)
 
         # Pack menu and page
-        menu.pack(side=tk.TOP)
-        page.pack(side=tk.TOP)
+        menu.pack(side=tk.TOP,fill=tk.BOTH, expand=False)
+        page.pack(side=tk.TOP,fill=tk.BOTH, expand=False)
 
         # Make all the frames and stack them ontop of each other
         self.frames = {}
@@ -125,7 +135,7 @@ class GUI(MQTT_Client):
         for F in (Dashboard, UpdateControlPolicy, Statistics, About):
             frame = F(page, self)
             self.frames[F] = frame
-            frame.grid(row=0,column=0, sticky="nsew")
+            frame.grid(row=0,column=0, sticky="wens")
         
         # Current page=button is pressed
         self.menu_button_map = {'Dashboard': self.button_dashboard, 'UpdateControlPolicy': self.button_control, 'Statistics':self.button_statistics, 'About':self.button_about}
@@ -168,9 +178,14 @@ class GUI(MQTT_Client):
             data = [float(x) for x in payload_dict['Data'].split('-')]
             self.current_control = [CONTROL_LABELS,data]
             self.frames[Dashboard].update_control(self.current_control)
-        elif topic == TOPICS['controller']:
+        elif topic == TOPICS['controller'][0]:
             if DEBUG:
                 print("GUI recv new controller ONOFF")
+            data = dict(item.split(':') for item in payload_dict['Data'][1:-1].split(','))
+            self.heater = data['Heater']
+            self.ac = data['AC']
+            self.frames[Dashboard].update_controller_data()
+
             
 
     
@@ -221,7 +236,7 @@ class GuiFrame(tk.Frame):
         tk.Frame.__init__(self, parent,
                         height=RPI_HEIGHT,
                         width=RPI_WIDTH,
-                        bg='white')
+                        bg=PAGE_COLOR_RGB)
         self.controller = controller
         self.parent = parent
     
@@ -234,27 +249,29 @@ class Dashboard(GuiFrame):
 
     def __init__(self, parent, controller):
         GuiFrame.__init__(self,parent,controller)
-        self.temp_c = tk.DoubleVar()
-        self.temp_c.set(24.3)
-        label_temp = tk.Label(self, text="Temperature: ", font=LARGE_FONT)
-        label_celsius = tk.Label(self, textvariable=self.temp_c, font=XL_FONT)
-        
-        label_temp.pack(side=tk.TOP)
-        label_celsius.pack(side=tk.TOP)
+        self.temp_label = tk.Label(self, text="Temperature: {:.2f}C".format(controller.current_temp), font=LARGE_FONT, bg=PAGE_COLOR_RGB)
+        self.current_time = time.strftime('%a %d. %b %H:%M:%S')
+        self.clock_label = tk.Label(self, text=self.current_time, font=LARGE_FONT, bg=PAGE_COLOR_RGB)
+        self.clock_label.after(1200,self.tick)
+        self.controller_label=tk.Label(self, text="Heater:N/A, A/C:N/A", font=LARGE_FONT, bg=PAGE_COLOR_RGB)
 
-        self.figure = Figure(figsize=(FIGSIZE_X, FIGSIZE_Y-0.5))
-        self.control_plot = self.figure.add_subplot(111, ylabel="Temp [C]", title="Control Policy")
+        self.clock_label.pack(side=tk.TOP)
+        self.temp_label.pack(side=tk.TOP)
+        self.controller_label.pack(side=tk.TOP)
+
+        self.figure = Figure(figsize=(FIGSIZE_DASH_X, FIGSIZE_DASH_Y), dpi=100, facecolor=PAGE_COLOR_MPL)
+        self.control_plot = self.figure.add_subplot(111, ylabel="Temp [C]", title="Control Policy", facecolor=PAGE_COLOR_MPL)
         self.control_plot.set_ylim([MIN_CONTROL_TEMP, MAX_CONTROL_TEMP])
         self.control_plot.plot(controller.current_control[0], controller.current_control[1], "ro-")
         self.control_plot.grid()
         canvas = FigureCanvasTkAgg(self.figure, self)
         canvas.draw()
-        canvas.get_tk_widget().pack(side=tk.TOP)
+        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH)
         self.figure.autofmt_xdate(rotation=45)
 
     def plot(self, figure, data):
         figure.clf()
-        self.control_plot = self.figure.add_subplot(111, ylabel="Temp [C]", title="Control Policy")
+        self.control_plot = self.figure.add_subplot(111, ylabel="Temp [C]", title="Control Policy", facecolor=PAGE_COLOR_MPL);
         self.control_plot.plot(data[0], data[1], "ro-")
         self.control_plot.set_ylim([MIN_CONTROL_TEMP, MAX_CONTROL_TEMP])
         self.figure.autofmt_xdate(rotation=45)
@@ -263,15 +280,24 @@ class Dashboard(GuiFrame):
 
     
     def update_temperature(self, temp):
-        self.temp_c.set(("{:.2f}C".format(float(temp))))
+        self.temp_label.config("Temperature: {:.2f}C".format(float(temp)))
 
     def update_control(self, control):
         self.plot(self.figure, control)
 
+    def update_controller_data(self):
+        self.controller_label.config(text="Heater:{}, A/C:{}".format(self.controller.heater, self.controller.ac))
+
     def refresh(self):
         self.plot(self.figure, self.controller.current_control)
 
-    
+    def tick(self):
+        time2 = time.strftime('%a %-d. %b %H:%M:%S')
+        if time2 != self.current_time:
+            self.current_time = time2
+            self.clock_label.config(text=self.current_time)
+        
+        self.clock_label.after(500,self.tick)
 
     name = "Dashboard"
 
@@ -281,14 +307,15 @@ class UpdateControlPolicy(GuiFrame):
     def __init__(self, parent, controller):
         GuiFrame.__init__(self,parent,controller)
 
-        button_update = tk.Button(self, text="Save", command= lambda: self.update_control())
-        button_reset = tk.Button(self, text="Reset", command = lambda : self.reset_control())
+        button_update = tk.Button(self, text="Save",height=BTN_CTRL_H, width=BTN_CTRL_W,bg=BTN_COLOR_RGB,font=BTN_CTRL_FONT, command= lambda: self.update_control())
+        button_reset = tk.Button(self, text="Reset",height=BTN_CTRL_H, width=BTN_CTRL_W,bg=BTN_COLOR_RGB,font=BTN_CTRL_FONT, command = lambda : self.reset_control())
 
         
         
         self.control_editable = copy.deepcopy(controller.current_control)
 
-        self.figure = Figure(figsize=(FIGSIZE_X_CTRL, FIGSIZE_Y_CTRL))
+        self.figure = Figure(figsize=(FIGSIZE_CTRL_X, FIGSIZE_CTRL_Y), dpi=100, facecolor=PAGE_COLOR_MPL)
+        
         
         canvas = FigureCanvasTkAgg(self.figure, self)
         canvas.draw()
@@ -310,7 +337,7 @@ class UpdateControlPolicy(GuiFrame):
     def plot(self,figure,data):
         self.figure.clf()
         self.figure.canvas.draw_idle()
-        self.control_plot = self.figure.add_subplot(111,xlabel='Time',ylabel='Temp[C]')
+        self.control_plot = self.figure.add_subplot(111,xlabel='Time',ylabel='Temp[C]',facecolor=PAGE_COLOR_MPL)
         self.control_plot.tick_params(axis='x', which='major', labelsize=SUBPLOT_XTICKS_SIZE)
         self.control_plot.set_ylim([MIN_CONTROL_TEMP, MAX_CONTROL_TEMP])
         self.control_plot.set_title("Change Control Policy", fontsize=PLOT_TITLE_SIZE)
@@ -378,7 +405,7 @@ class UpdateControlPolicy(GuiFrame):
 class Statistics(GuiFrame):
     def __init__(self, parent, controller):
         GuiFrame.__init__(self,parent,controller)
-        self.figure = Figure(figsize=(FIGSIZE_X, FIGSIZE_Y))
+        self.figure = Figure(figsize=(FIGSIZE_STATS_X, FIGSIZE_STATS_Y),dpi=100,facecolor=PAGE_COLOR_MPL)
         self.out_dated = True
         canvas = FigureCanvasTkAgg(self.figure, self)
         canvas.draw()
@@ -387,7 +414,7 @@ class Statistics(GuiFrame):
 
     def plot(self, figure, last_week, last_24h):
         figure.clf()
-        self.week_plot = figure.add_subplot(211)
+        self.week_plot = figure.add_subplot(211, facecolor=PAGE_COLOR_MPL)
         self.week_plot.set_title("Last week", fontsize=SUBPLOT_TITLE_SIZE)
         self.week_plot.tick_params(axis='x', which='major', labelsize=SUBPLOT_XTICKS_SIZE)
         self.week_plot.set_ylim([MIN_TEMP, MAX_TEMP])
@@ -395,7 +422,7 @@ class Statistics(GuiFrame):
         self.week_plot.plot(last_week[0], last_week[1], "bo-")
         self.week_plot.grid()
 
-        self.day_plot = figure.add_subplot(212)
+        self.day_plot = figure.add_subplot(212, facecolor=PAGE_COLOR_MPL)
         self.day_plot.set_title("Last 24 hours", fontsize=SUBPLOT_TITLE_SIZE)
         self.day_plot.tick_params(axis='x', which='major', labelsize=SUBPLOT_XTICKS_SIZE)
         self.day_plot.set_ylim([MIN_TEMP, MAX_TEMP])
@@ -411,7 +438,7 @@ class Statistics(GuiFrame):
 
 
     def refresh(self):
-        if out_dated:
+        if self.out_dated:
             last_24h = logger.get_temp_24h()
             last_week = logger.get_temp_1w()
             self.plot(self.figure,last_week,last_24h)
@@ -421,7 +448,7 @@ class Statistics(GuiFrame):
 class About(GuiFrame):
     def __init__(self, parent, controller):
         GuiFrame.__init__(self,parent,controller)
-        text = tk.Text(self, height=ABOUT_TEXT_HEIGHT, width=ABOUT_TEXT_WIDTH)
+        text = tk.Text(self, height=ABOUT_TEXT_HEIGHT, width=ABOUT_TEXT_WIDTH, bg=PAGE_COLOR_RGB,font=LARGE_FONT)
         text.insert(tk.END, ABOUT_TEXT)
         text.pack(side=tk.TOP)
     name = "About"

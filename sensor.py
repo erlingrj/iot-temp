@@ -4,12 +4,14 @@ from random import random
 import asyncio
 import datetime
 
+from w1thermsensor import W1ThermSensor
 from config import *
 
 
 class TempSensor(MQTT_Client):
     def __init__(self):
         MQTT_Client.__init__(self)
+        self.sensor = W1ThermSensor()
         self.current_temp = 0.0
         # self.my_topic = ("TEMP", QOS_1)
         self.my_topic = TOPICS['temp']
@@ -25,11 +27,11 @@ class TempSensor(MQTT_Client):
         """
         while True:
             # Generate random new temperature
-            self.current_temp = random()*30
+            self.current_temp = self.sensor.get_temperature()
             # Publish the new tempe
             await self.publish_to(self.my_topic[0], self.current_temp)
              # GO to sleep and give CPU time to other tasks
-            await asyncio.sleep(self.sampling_period)
+            await asyncio.sleep(SENSOR_SAMPLING_INTERVAL_S)
 
             
 
