@@ -70,6 +70,7 @@ class GUI(MQTT_Client):
                                     width=MENU_BUTTON_WIDTH,
                                     height=MENU_BUTTON_HEIGHT,
                                    command= lambda: self.show_frame(Dashboard),
+                                   relief=tk.SUNKEN
         )
         self.button_dashboard.pack(side=tk.LEFT)
 
@@ -78,7 +79,8 @@ class GUI(MQTT_Client):
                                     font=MENU_BUTTON_FONT,
                                     width=MENU_BUTTON_WIDTH,
                                     height=MENU_BUTTON_HEIGHT,
-                                   command= lambda: self.show_frame(UpdateControlPolicy)
+                                   command= lambda: self.show_frame(UpdateControlPolicy),
+                                   relief=tk.RAISED
         )
         self.button_control.pack(side=tk.LEFT)
         self.button_statistics = tk.Button(menu, text="Statistics",
@@ -86,7 +88,8 @@ class GUI(MQTT_Client):
                                     font=MENU_BUTTON_FONT,
                                     width=MENU_BUTTON_WIDTH,
                                     height=MENU_BUTTON_HEIGHT,
-                                   command= lambda: self.show_frame(Statistics)
+                                   command= lambda: self.show_frame(Statistics),
+                                   relief=tk.RAISED
         )
         self.button_statistics.pack(side=tk.LEFT)
 
@@ -95,7 +98,8 @@ class GUI(MQTT_Client):
                                     font=MENU_BUTTON_FONT,
                                     width=MENU_BUTTON_WIDTH,
                                     height=MENU_BUTTON_HEIGHT,
-                                   command= lambda: self.show_frame(About)
+                                   command= lambda: self.show_frame(About),
+                                   relief=tk.RAISED
         )
         self.button_about.pack(side=tk.LEFT)
 
@@ -104,7 +108,8 @@ class GUI(MQTT_Client):
                                     font=MENU_BUTTON_FONT,
                                     width=MENU_BUTTON_WIDTH,
                                     height=MENU_BUTTON_HEIGHT,
-                                   command= lambda: self.shut_down()
+                                   command= lambda: self.shut_down(),
+                                   relief=tk.RAISED
         )
         self.button_quit.pack(side=tk.LEFT)
 
@@ -134,6 +139,7 @@ class GUI(MQTT_Client):
         frame = self.frames[cont]
         frame.refresh()
         frame.tkraise()
+        print(self.current_button)
         
     def packet_received_cb(self,topic, payload_dict):
         """

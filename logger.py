@@ -44,7 +44,7 @@ class Logger(MQTT_Client):
         # I.e. we will do that before continuting to the rest of the program.
         self.loop.run_until_complete(self.subscribe_to(self.my_topics))
         self.id = 1
-
+        self.remote_poll_interval = 60
         
         
     def packet_received_cb(self,topic, payload_dict):
@@ -152,7 +152,7 @@ class Logger(MQTT_Client):
         # This is the infinte loop that keeps polling the DB
         while True:
             await self.poll_remote_db()
-            await asyncio.sleep(10*60)
+            await asyncio.sleep(self.remote_poll_interval)
         
 
         
