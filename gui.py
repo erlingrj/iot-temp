@@ -52,7 +52,8 @@ class GUI(MQTT_Client):
 
         ## TKINTER STUFF
         self.root = tk.Tk()
-        self.root.geometry("{}x{}".format(RPI_WIDTH, RPI_HEIGHT,))
+        self.root.overrideredirect(True)
+        self.root.geometry("{0}x{1}+0+0".format(self.root.winfo_screenwidth(), self.root.winfo_screenheight()))
         self.tk_interval = 0.05
         # Make the root container which contains menu and page
         main_window = tk.Frame(self.root, height=RPI_HEIGHT, width=RPI_WIDTH)
