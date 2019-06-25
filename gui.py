@@ -2,7 +2,7 @@
 from mqtt_client import MQTT_Client
 from hbmqtt.mqtt.constants import QOS_1
 import asyncio
-
+import copy
 
 # Configuration of TOPICS and addresses
 from config import *
@@ -43,6 +43,10 @@ RPI_WIDTH = 600
 FIGSIZE_X = 5.8
 FIGSIZE_Y = 3.5
 
+FIGSIZE_X_CTRL = 5.8
+FIGSIZE_Y_CTRL  = 3.0
+
+PLOT_TITLE_SIZE = 14
 SUBPLOT_TITLE_SIZE = 8
 SUBPLOT_XTICKS_SIZE = 5
 
@@ -67,7 +71,7 @@ class GUI(MQTT_Client):
         self.id = 2
 
         self.current_temp = 18.0
-        self.current_control = logger.get_current_control_policy()
+        self.current_control = copy.deepcopy(logger.get_current_control_policy())
 
         ## TKINTER STUFF
         self.root = tk.Tk()
@@ -239,7 +243,7 @@ class GuiFrame(tk.Frame):
         pass    
     
 
-
+# Dashboard frame
 class Dashboard(GuiFrame):
 
     def __init__(self, parent, controller):
@@ -286,6 +290,7 @@ class Dashboard(GuiFrame):
     name = "Dashboard"
 
 
+# Update control policy frame
 class UpdateControlPolicy(GuiFrame):
     def __init__(self, parent, controller):
         GuiFrame.__init__(self,parent,controller)
@@ -293,9 +298,11 @@ class UpdateControlPolicy(GuiFrame):
         button_update = tk.Button(self, text="Save", command= lambda: self.update_control())
         button_reset = tk.Button(self, text="Reset", command = lambda : self.reset_control())
 
-        self.control_editable = controller.current_control[:]
+        
+        
+        self.control_editable = copy.deepcopy(controller.current_control)
 
-        self.figure = Figure(figsize=(FIGSIZE_X, FIGSIZE_Y))
+        self.figure = Figure(figsize=(FIGSIZE_X_CTRL, FIGSIZE_Y_CTRL))
         
         canvas = FigureCanvasTkAgg(self.figure, self)
         canvas.draw()
@@ -320,17 +327,18 @@ class UpdateControlPolicy(GuiFrame):
         self.control_plot = self.figure.add_subplot(111,xlabel='Time',ylabel='Temp[C]')
         self.control_plot.tick_params(axis='x', which='major', labelsize=SUBPLOT_XTICKS_SIZE)
         self.control_plot.set_ylim([MIN_CONTROL_TEMP, MAX_CONTROL_TEMP])
+        self.control_plot.set_title("Change Control Policy", fontsize=PLOT_TITLE_SIZE)
         self.control_plot.plot(data[0], data[1], "ro-")
         self.control_plot.grid()
         self.figure.autofmt_xdate(rotation=45)
 
 
     def refresh(self):
-        self.control_editable = self.controller.current_control[:]
+        self.control_editable = copy.deepcopy(self.controller.current_control)
         self.plot(self.figure, self.control_editable)
 
     def update_control(self):
-        self.controller.current_control,self.control_editable[:]
+        self.controller.current_control = copy.deepcopy(self.control_editable)
         payload = "-".join(map(str,self.control_editable[1]))
         # The we call the async function publish_to with the right topic
         # We use ensure_future as it is an async function and we cannot call await on it
@@ -344,7 +352,6 @@ class UpdateControlPolicy(GuiFrame):
         
         if event.button == 1 and event.inaxes in [self.control_plot]:
             point = self._find_neighbor_point(event)
-            print(point)
             if point:
                 self._dragging_point = point
     
@@ -384,8 +391,6 @@ class Statistics(GuiFrame):
 
 
     def plot(self, figure, last_week, last_24h):
-        print(last_week)
-        print(last_24h)
         figure.clf()
         self.week_plot = figure.add_subplot(211)
         self.week_plot.set_title("Last week", fontsize=SUBPLOT_TITLE_SIZE)
@@ -411,7 +416,6 @@ class Statistics(GuiFrame):
 
 
     def refresh(self):
-        print("Refresh stats")
         last_24h = logger.get_temp_24h()
         last_week = logger.get_temp_1w()
         self.plot(self.figure,last_week,last_24h)
