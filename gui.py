@@ -6,6 +6,8 @@ import copy
 
 # Configuration of TOPICS and addresses
 from config import *
+# GUI configuration and texts
+from gui_config import *
 
 # For exception handeling
 import sys
@@ -30,31 +32,6 @@ from matplotlib.figure import Figure
 from matplotlib.backend_bases import MouseEvent
 import matplotlib.pyplot as plt
 
-
-LARGE_FONT = ("Verdana", 12)
-XL_FONT = ("Verdana", 14)
-MENU_BUTTON_HEIGHT = 2
-MENU_BUTTON_COLOR = 'green'
-MENU_BUTTON_WIDTH = 10
-MENU_BUTTON_FONT = ("Verdana", 14)
-RPI_HEIGHT = 400
-RPI_WIDTH = 600
-
-FIGSIZE_X = 5.8
-FIGSIZE_Y = 3.5
-
-FIGSIZE_X_CTRL = 5.8
-FIGSIZE_Y_CTRL  = 3.0
-
-PLOT_TITLE_SIZE = 14
-SUBPLOT_TITLE_SIZE = 8
-SUBPLOT_XTICKS_SIZE = 5
-
-MIN_CONTROL_TEMP = 15
-MAX_CONTROL_TEMP = 30
-
-MIN_TEMP = 0
-MAX_TEMP = 50
 
 class GUI(MQTT_Client):
     def __init__(self, *args, **kwargs):
@@ -424,9 +401,9 @@ class Statistics(GuiFrame):
 class About(GuiFrame):
     def __init__(self, parent, controller):
         GuiFrame.__init__(self,parent,controller)
-        
-        label = tk.Label(self, text="About!!!", font=LARGE_FONT)
-        label.pack()
+        text = tk.Text(self, height=ABOUT_TEXT_HEIGHT, width=ABOUT_TEXT_WIDTH)
+        text.insert(tk.END, ABOUT_TEXT)
+        text.pack(side=tk.TOP)
     name = "About"
 
         
