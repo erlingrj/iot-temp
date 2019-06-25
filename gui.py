@@ -322,9 +322,7 @@ class UpdateControlPolicy(GuiFrame):
         self.control_editable = copy.deepcopy(self.controller.current_control)
         self.plot(self.figure, self.control_editable)
 
-    def _update_plot(self,data):
-        self._line[0].set_data(data[0], data[1])
-        self.figure.canvas.draw()
+
 
     def update_control(self):
         self.controller.current_control = copy.deepcopy(self.control_editable)
@@ -337,6 +335,12 @@ class UpdateControlPolicy(GuiFrame):
     def reset_control(self):
         self.refresh()
 
+
+    def _update_plot(self,data):
+        self._line[0].set_ydata(data[1])
+        self.figure.canvas.draw()
+
+
     def _on_click(self, event):
         
         if event.button == 1 and event.inaxes in [self.control_plot]:
@@ -346,11 +350,13 @@ class UpdateControlPolicy(GuiFrame):
     
     def _on_release(self, event):
         if self._dragging_point:
+            self.control_editable[1][self._dragging_point] = float(round(event.ydata),1)
+            self._update_plot(self.control_editable)
             self._dragging_point = None
 
     def _on_motion(self, event):
         if self._dragging_point:
-            self.control_editable[1][self._dragging_point] = float(round(event.ydata,1))
+            self.control_editable[1][self._dragging_point] = event.ydata
             self._update_plot(self.control_editable)
     
     def _find_neighbor_point(self, event):
