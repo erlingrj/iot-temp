@@ -9,6 +9,7 @@ from config import *
 
 # For exception handeling
 import sys
+import os
 
 # For accessing the log files:
 import logger
@@ -34,7 +35,7 @@ LARGE_FONT = ("Verdana", 12)
 XL_FONT = ("Verdana", 14)
 MENU_BUTTON_HEIGHT = 2
 MENU_BUTTON_COLOR = 'green'
-MENU_BUTTON_WIDTH = 16
+MENU_BUTTON_WIDTH = 10
 MENU_BUTTON_FONT = ("Verdana", 14)
 RPI_HEIGHT = 400
 RPI_WIDTH = 600
@@ -116,6 +117,15 @@ class GUI(MQTT_Client):
         )
         self.button_about.pack(side=tk.LEFT)
 
+        self.button_quit = tk.Button(menu, text="Quit",
+                                    bg=MENU_BUTTON_COLOR,
+                                    font=MENU_BUTTON_FONT,
+                                    width=MENU_BUTTON_WIDTH,
+                                    height=MENU_BUTTON_HEIGHT,
+                                   command= lambda: self.shut_down()
+        )
+        self.button_quit.pack(side=tk.LEFT)
+
         # Pack menu and page
         menu.pack(side=tk.TOP)
         page.pack(side=tk.TOP)
@@ -189,10 +199,10 @@ class GUI(MQTT_Client):
             self.loop.create_task(self.listen()) # Listen to subscribed topics
             self.loop.create_task(self.run_tk()) # Run GUI
             self.loop.run_forever()
-        except KeyboardInterrupt:
+        except:
             pass
-        finally:
-            self.loop.close()
+            
+
 
 
     async def run_tk(self):
@@ -203,6 +213,15 @@ class GUI(MQTT_Client):
             self.root.update()
             self.root.update_idletasks()
             await asyncio.sleep(self.tk_interval) #tk_interval is defined in the __init__
+
+    def shut_down(self):
+        for task in asyncio.Task.all_tasks():
+            task.cancel()
+
+        self.root.destroy()
+        self.loop.stop()
+        os._exit(0)
+
         
  
  # GUI frame is the parent of all the frames

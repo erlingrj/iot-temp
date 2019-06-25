@@ -5,7 +5,6 @@ import os
 from hbmqtt.broker import Broker
 
 # Added by Erling. system-constants.py contains address and port
-from system_constants import *
 from config import *
 
 

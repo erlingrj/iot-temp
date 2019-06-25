@@ -68,7 +68,6 @@ class MQTT_Client(ABC):
                 # Extract and decode bytestring
                 payload_bytestring = p_format.payload.data.decode('utf-8')
                 payload = decode_msg(payload_bytestring)
-                print(self.id, payload['Src'])
                 if int(payload['Src']) != self.id:
                     del payload['Src'] #Remove the source thing.
                     self.packet_received_cb(topic, payload)
