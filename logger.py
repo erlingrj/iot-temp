@@ -88,7 +88,7 @@ class Logger(MQTT_Client):
                 print("No internet connection to log_to_remote_db")
         elif topic == TOPICS['temp_setpoint'][0]:
             try:
-                r = requests.post(DB_POST_CONTROL_PATH, data=payload_dict)
+                r = requests.post(DB_POST_CONTROL_PATH, json=payload_dict, headers = {'content-type': 'application/json'})
                 if r.status_code != 200:
                     print("COULDNT POST: {}".format(r.text))
                 else:

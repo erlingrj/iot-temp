@@ -14,7 +14,7 @@ class TempSensor(MQTT_Client):
         # self.my_topic = ("TEMP", QOS_1)
         self.my_topic = TOPICS['temp']
         # The frequency of sampling the temperature
-        self.sampling_period = 60*15
+        self.sampling_period = 3
         self.id = 3
 
     async def main_loop(self):
