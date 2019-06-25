@@ -54,8 +54,8 @@ class GUI(MQTT_Client):
 
         ## TKINTER STUFF
         self.root = tk.Tk()
-        self.root.overrideredirect(True)
-        self.root.geometry("{0}x{1}+0+0".format(self.root.winfo_screenwidth(), self.root.winfo_screenheight()))
+        #self.root.overrideredirect(True)
+        #self.root.geometry("{0}x{1}+0+0".format(self.root.winfo_screenwidth(), self.root.winfo_screenheight()))
         self.tk_interval = 0.05
         # Make the root container which contains menu and page
         main_window = tk.Frame(self.root, height=RPI_HEIGHT, width=RPI_WIDTH)
@@ -313,7 +313,7 @@ class UpdateControlPolicy(GuiFrame):
         self.control_plot.tick_params(axis='x', which='major', labelsize=SUBPLOT_XTICKS_SIZE)
         self.control_plot.set_ylim([MIN_CONTROL_TEMP, MAX_CONTROL_TEMP])
         self.control_plot.set_title("Change Control Policy", fontsize=PLOT_TITLE_SIZE)
-        self.control_plot.plot(data[0], data[1], "ro-")
+        self._line = self.control_plot.plot(data[0], data[1], "ro-")
         self.control_plot.grid()
         self.figure.autofmt_xdate(rotation=45)
 
@@ -321,6 +321,10 @@ class UpdateControlPolicy(GuiFrame):
     def refresh(self):
         self.control_editable = copy.deepcopy(self.controller.current_control)
         self.plot(self.figure, self.control_editable)
+
+    def _update_plot(self,data):
+        self._line[0].set_data(data[0], data[1])
+        self.figure.canvas.draw()
 
     def update_control(self):
         self.controller.current_control = copy.deepcopy(self.control_editable)
@@ -346,8 +350,8 @@ class UpdateControlPolicy(GuiFrame):
 
     def _on_motion(self, event):
         if self._dragging_point:
-            self.control_editable[1][self._dragging_point] = event.ydata
-            self.plot(self.figure, self.control_editable)
+            self.control_editable[1][self._dragging_point] = float(round(event.ydata,1))
+            self._update_plot(self.control_editable)
     
     def _find_neighbor_point(self, event):
         distance_threshold = 1
