@@ -249,7 +249,8 @@ class Dashboard(GuiFrame):
 
     def __init__(self, parent, controller):
         GuiFrame.__init__(self,parent,controller)
-        self.temp_label = tk.Label(self, text="Temperature: {:.2f}C".format(controller.current_temp), font=LARGE_FONT, bg=PAGE_COLOR_RGB)
+        self.temp_text = "Temperature: N/A"
+        self.temp_label = tk.Label(self, text=self.temp_text, font=LARGE_FONT, bg=PAGE_COLOR_RGB)
         self.current_time = time.strftime('%a %d. %b %H:%M:%S')
         self.clock_label = tk.Label(self, text=self.current_time, font=LARGE_FONT, bg=PAGE_COLOR_RGB)
         self.clock_label.after(1200,self.tick)
@@ -280,7 +281,10 @@ class Dashboard(GuiFrame):
 
     
     def update_temperature(self, temp):
-        self.temp_label.config("Temperature: {:.2f}C".format(float(temp)))
+        print("will update now with: {}".format(float(temp)))
+        self.temp_text = "Temperature: {}C".format(float(temp))
+        print(self.temp_text)
+        self.temp_label.config(text=self.temp_text)
 
     def update_control(self, control):
         self.plot(self.figure, control)

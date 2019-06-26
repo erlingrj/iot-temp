@@ -102,7 +102,7 @@ def run():
 def hour_to_policy_index(hour):
     if (hour < 2):
         return 11
-    hour =- 2
+    hour -=  2
     return int(hour/2)
 
 if __name__ == '__main__':

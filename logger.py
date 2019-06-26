@@ -126,11 +126,14 @@ class Logger(MQTT_Client):
     async def poll_remote_db(self):
         # Poll last entry from DB
         try:
+            print(DB_GET_CONTROL_PATH, APIKEY)
             r = requests.get(DB_GET_CONTROL_PATH, headers={'APIKEY':APIKEY})
+            print(r)
             if r.status_code == 200:
                 last_control = r.json()
+                print(last_control)
                 ret = compare_local_log(last_control, LogEntryType.CONTROL)
-
+                print(ret)
                 if ret == -1:
                     print("Local log is outdated")
                     await self.publish_to(topic=TOPICS['temp_setpoint'][0],data=last_control['Data'])
@@ -143,8 +146,8 @@ class Logger(MQTT_Client):
                     print("Logger verify consistency between ")
             else:
                 print("Failed to get control policy in poll_remote_db: {}".format(r.text))
-        except:
-            print("No internet connection to poll_remote_db")
+        except Exception as e:
+            print("No internet connection to poll_remote_db: {}".format(e))
             pass
         
 
@@ -153,7 +156,7 @@ class Logger(MQTT_Client):
         # This is the infinte loop that keeps polling the DB
         while True:
             await self.poll_remote_db()
-            await asyncio.sleep(self.remote_poll_interval)
+            await asyncio.sleep(LOGGER_INTERVAL_S)
         
 
         
@@ -195,6 +198,7 @@ def log_entry_decode(entry):
     # Take a log entry and return the topic and payload_dict
     my_dict = dict(item.split('=') for item in entry.split(';'))
 
+
     return my_dict
 
 
@@ -224,6 +228,7 @@ def read_current_state_log():
 
 
 def compare_local_log(db_entry, entryType):
+    print("check")
     last_local_entry = read_log(entryType, nEntries = 1)
     if not last_local_entry:
         return -1 # local out-of-date

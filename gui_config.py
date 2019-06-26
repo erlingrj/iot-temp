@@ -47,10 +47,10 @@ MAX_TEMP = 50
 ABOUT_TEXT_HEIGHT=10
 ABOUT_TEXT_WIDTH= 70
 ABOUT_TEXT = "\
-Dashboard: View current temperature and current control policy\n\
+# Dashboard: View current temperature and current control policy\n\
 # Control Policy: Configure a new Control Policy and \npublish to the system\n\
-Statistics: View the measured temperature for the last 24 hours \nand the last week\n\
-About: This page\n\
-Quit: Turn off the GUI. The temperature system will still be running.\nDouble press GUI icon on the Desktop to re-open it\
+# Statistics: View the measured temperature for the last 24 hours \nand the last week\n\
+# About: This page\n\
+# Quit: Turn off the GUI. The temperature system will still be running.\nDouble press GUI icon on the Desktop to re-open it\
 "
               
